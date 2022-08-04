@@ -161,9 +161,9 @@ namespace Core {
 
         TimerType(const uint32_t stackSize, const TCHAR* timerName)
             : _pendingQueue()
+            , _pendingdelayqueue()
             , _timerThread(*this, stackSize, timerName)
             , _adminLock()
-            , _nextTrigger(NUMBER_MAX_UNSIGNED(uint64_t))
             , _waitForCompletion(true, true)
             , _executing(nullptr)
 
@@ -179,6 +179,7 @@ namespace Core {
 
             // Force kill on all pending stuff...
             _pendingQueue.clear();
+            _pendingdelayqueue.clear();
 
             _adminLock.Unlock();
 
@@ -197,12 +198,22 @@ namespace Core {
 
         inline void Schedule(const uint64_t& time, CONTENT&& info)
         {
-            Schedule(TimedInfo<CONTENT>(time, std::move(info)));
+            Schedule(std::move(TimedInfo<CONTENT>(time, std::move(info))));
         }
 
         inline void Schedule(const uint64_t& time, const CONTENT& info)
         {
             Schedule(std::move(TimedInfo<CONTENT>(time, info)));
+        }
+
+        inline void ScheduleDelay(const uint32_t delay, CONTENT&& info)
+        {
+            ScheduleDelay(std::move(TimedInfo<CONTENT>( Core::InvariantTime::Now().Add(delay).Ticks(), std::move(info))));
+        }
+
+        inline void ScheduleDelay(const uint32_t delay, const CONTENT& info)
+        {
+            ScheduleDelay(std::move(TimedInfo<CONTENT>(Core::InvariantTime::Now().Add(delay).Ticks(), info)));
         }
 
         inline void Flush() {
@@ -212,6 +223,8 @@ namespace Core {
 
             // Force kill on all pending stuff...
             _pendingQueue.clear();
+            _pendingdelayqueue.clear();
+
             _adminLock.Unlock();
 
             _timerThread.Wait(Thread::BLOCKED, Core::infinite);
@@ -224,12 +237,21 @@ namespace Core {
 
             typename SubscriberList::const_iterator index = _pendingQueue.cbegin();
 
-            // Clear all entries !!
             while ((index != _pendingQueue.cend()) && (*index != element)) {
                 index++;
             }
 
             bool found = (index != _pendingQueue.cend());
+
+            if( found == false ) {
+                typename SubscriberList::const_iterator index = _pendingdelayqueue.cbegin();
+
+                while ((index != _pendingdelayqueue.cend()) && (*index != element)) {
+                    index++;
+                }
+
+                found = (index != _pendingdelayqueue.cend());
+            }
 
             // Done with the administration. Release the lock.
             _adminLock.Unlock();
@@ -242,7 +264,18 @@ namespace Core {
         {
             _adminLock.Lock();
 
-            if (ScheduleEntry(std::move(timeInfo)) == true) {
+            if (ScheduleEntry(_pendingQueue, std::move(timeInfo)) == true) {
+                _timerThread.Run();
+            }
+
+            _adminLock.Unlock();
+        }
+
+        void ScheduleDelay(TimedInfo<CONTENT>&& delayInfo)
+        {
+            _adminLock.Lock();
+
+            if (ScheduleEntry(_pendingdelayqueue, std::move(delayInfo)) == true) {
                 _timerThread.Run();
             }
 
@@ -264,6 +297,29 @@ namespace Core {
 
             if (index != _pendingQueue.end()) {
                 _pendingQueue.erase(index);
+            }
+
+            if (ScheduleEntry(std::move(newEntry)) == true) {
+                _timerThread.Run();
+            }
+
+            _adminLock.Unlock();
+        }
+
+        void TriggerDelay(const uint32_t& delay, const CONTENT& info)
+        {
+            TimedInfo<CONTENT> newEntry(Core::InvariantTime::Now().Add(delay).Ticks(), info);
+
+            _adminLock.Lock();
+
+            typename SubscriberList::iterator index = _pendingdelayqueue.begin();
+
+            while ((index != _pendingdelayqueue.end()) && ((*index).Content() != info)) {
+                ++index;
+            }
+
+            if (index != _pendingdelayqueue.end()) {
+                _pendingdelayqueue.erase(index);
             }
 
             if (ScheduleEntry(std::move(newEntry)) == true) {
@@ -308,8 +364,25 @@ namespace Core {
                 }
             }
 
+            {
+                typename SubscriberList::iterator index = _pendingdelayqueue.begin();
+
+                while (index != _pendingdelayqueue.end()) {
+                    if (index->Content() == info) {
+                        changedHead |= (index == _pendingdelayqueue.begin());
+                        foundElement = true;
+
+                        // Remove this... Found it, remove it.
+                        index = _pendingdelayqueue.erase(index);
+                    }
+                    else {
+                        ++index;
+                    }
+                }
+            }
+
             if (changedHead == true) {
-                // If we added the new time up front, retrigger the scheduler.
+                // If we removed the time up front, retrigger the scheduler.
                 _timerThread.Run();
             }
 
@@ -318,14 +391,10 @@ namespace Core {
             return (foundElement);
         }
 
-        uint64_t NextTrigger() const
-        {
-            return (_nextTrigger);
-        }
-
         uint32_t Pending() const
         {
-            return (_pendingQueue.size());
+            SafeSyncType<CriticalSection> sync(_adminLock);
+            return (_pendingQueue.size() + _pendingdelayqueue.size());
         }
 
         ::ThreadId ThreadId() const
@@ -334,23 +403,36 @@ namespace Core {
         }
 
     protected:
-        uint32_t Process()
-        {
-            uint32_t delayTime = Core::infinite;
-            uint64_t now = Time::Now().Ticks();
+        uint32_t Process() {
 
             _adminLock.Lock();
 
             // Move to a blocked delay state. We would like to have some delay afterwards..
             // Ranging from 0-Core::infinite
             _timerThread.Block();
+            
+            ProcessQueue(_pendingQueue, Time::Now().Ticks());
+            ProcessQueue(_pendingdelayqueue, InvariantTime::Now().Ticks());
 
-            while ((_pendingQueue.empty() == false) && (_pendingQueue.front().ScheduleTime() <= now)) {
-                TimedInfo<CONTENT> info(std::move(_pendingQueue.front()));
+             // Refresh the time, just to be on the safe side...
+            uint32_t rerunTime = DetermineRerunTime(_pendingQueue, Time::Now().Ticks());
+            uint32_t delayRerunTime = DetermineRerunTime(_pendingdelayqueue, InvariantTime::Now().Ticks());
+
+            _adminLock.Unlock();
+
+            return std::min(rerunTime, delayRerunTime);
+        }
+
+        void ProcessQueue(SubscriberList& list, const uint64_t referencetime)
+        {
+
+            //first we check the time based jobs
+            while ((list.empty() == false) && (list.front().ScheduleTime() <= referencetime)) {
+                TimedInfo<CONTENT> info(std::move(list.front()));
                 _executing = &(info.Content());
 
                 // Make sure we loose the current one before we do the call, that one might add ;-)
-                _pendingQueue.pop_front();
+                list.pop_front();
                 _waitForCompletion.ResetEvent();
 
                 _adminLock.Unlock();
@@ -360,58 +442,53 @@ namespace Core {
                 _adminLock.Lock();
 
                 if ((_executing != nullptr) && (reschedule != 0)) {
-                    ASSERT(reschedule > now);
+                    ASSERT(reschedule > referencetime);
 
                     info.ScheduleTime(reschedule);
-                    ScheduleEntry(std::move(info));
+                    ScheduleEntry(list, std::move(info));
                 }
 
                 _waitForCompletion.SetEvent();
                 _executing = nullptr;
             }
+        }
+
+        uint32_t DetermineRerunTime(SubscriberList& list, const uint64_t referencetime)
+        {
+            uint32_t delayTime = Core::infinite;
 
             // Calculate the delay...
-            if (_pendingQueue.empty() == true) {
-                _nextTrigger = NUMBER_MAX_UNSIGNED(uint64_t);
-            } else {
-                // Refresh the time, just to be on the safe side...
-                uint64_t delta = Time::Now().Ticks();
+            if (list.empty() == false) {
 
-                if (delta >= _pendingQueue.front().ScheduleTime()) {
-                    _nextTrigger = delta;
+                if (referencetime >= list.front().ScheduleTime()) {
                     delayTime = 0;
                 } else {
-                    // The windows counter is in 100ns intervals dus we mmoeten even delen door  1000 (us) * 10 ns = 10.000
-                    // om de waarde in ms te krijgen.
-                    _nextTrigger = _pendingQueue.front().ScheduleTime();
-                    delayTime = static_cast<uint32_t>((_nextTrigger - delta) / Time::TicksPerMillisecond);
+                    delayTime = static_cast<uint32_t>((list.front().ScheduleTime() - referencetime) / Time::TicksPerMillisecond);
                 }
             }
-
-            _adminLock.Unlock();
 
             return (delayTime);
         }
 
     private:
-        bool ScheduleEntry(TimedInfo<CONTENT>&& infoBlock)
+        bool ScheduleEntry(SubscriberList& list, TimedInfo<CONTENT>&& infoBlock)
         {
             bool reevaluate = false;
-            typename SubscriberList::iterator index = _pendingQueue.begin();
+            typename SubscriberList::iterator index = list.begin();
 
-            while ((index != _pendingQueue.end()) && (infoBlock.ScheduleTime() >= (*index).ScheduleTime())) {
+            while ((index != list.end()) && (infoBlock.ScheduleTime() >= (*index).ScheduleTime())) {
                 ++index;
             }
 
-            if (index == _pendingQueue.begin()) {
-                _pendingQueue.push_front(std::move(infoBlock));
+            if (index == list.begin()) {
+                list.push_front(std::move(infoBlock));
 
                 // If we added the new time up front, retrigger the scheduler.
                 reevaluate = true;
-            } else if (index == _pendingQueue.end()) {
-                _pendingQueue.push_back(std::move(infoBlock));
+            } else if (index == list.end()) {
+                list.push_back(std::move(infoBlock));
             } else {
-                _pendingQueue.insert(index, std::move(infoBlock));
+                list.insert(index, std::move(infoBlock));
             }
 
             return (reevaluate);
@@ -419,9 +496,9 @@ namespace Core {
 
     private:
         SubscriberList _pendingQueue;
+        SubscriberList _pendingdelayqueue;
         TimeWorker _timerThread;
         mutable CriticalSection _adminLock;
-        uint64_t _nextTrigger;
         Core::Event _waitForCompletion;
         CONTENT* _executing;
     };

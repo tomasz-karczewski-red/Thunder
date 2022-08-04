@@ -72,7 +72,7 @@ namespace Core {
                         ThreadPool::JobType<IMPLEMENTATION>::Revoked();
                     }
 
-                    job = (ThreadPool::JobType<IMPLEMENTATION>::Idle());
+                    job = (ThreadPool::JobType<IMPLEMENTATION>::Submit());
 
                     if (job.IsValid() == true) {
                         IWorkerPool::Instance().Schedule(time, job);
@@ -94,6 +94,7 @@ namespace Core {
 
         struct Metadata {
             uint32_t Pending;
+            uint32_t Scheduled;
             uint8_t Slots;
             ThreadPool::Metadata* Slot;
         };
@@ -105,6 +106,7 @@ namespace Core {
         virtual ::ThreadId Id(const uint8_t index) const = 0;
         virtual void Submit(const Core::ProxyType<IDispatch>& job) = 0;
         virtual void Schedule(const Core::Time& time, const Core::ProxyType<IDispatch>& job) = 0;
+        virtual void Schedule(const uint32_t delayMs, const Core::ProxyType<IDispatch>& job) = 0;
         virtual bool Reschedule(const Core::Time& time, const Core::ProxyType<IDispatch>& job) = 0;
         virtual uint32_t Revoke(const Core::ProxyType<IDispatch>& job, const uint32_t waitTime = Core::infinite) = 0;
         virtual void Join() = 0;
@@ -172,6 +174,9 @@ namespace Core {
             // Inherited via IScheduler
             void Schedule(const Time& time, const ProxyType<IDispatch>& job) override {
                 _timer.Schedule(time, Timer(_pool, job));
+            }
+            void Schedule(const uint32_t delayMs, const ProxyType<IDispatch>& job) override {
+                _timer.ScheduleDelay(delayMs, Timer(_pool, job));
             }
 
         private:
@@ -350,6 +355,13 @@ POP_WARNING()
                 _threadPool.Submit(job, Core::infinite);
             }
         }
+        void Schedule(const uint32_t delayMs, const Core::ProxyType<IDispatch>& job) override
+        {
+            ASSERT(job.IsValid() == true);
+            ASSERT(_timer.HasEntry(Timer(this, job)) == false);
+
+            _timer.ScheduleDelay(delayMs, Timer(this, job));
+        }
         bool Reschedule(const Core::Time& time, const Core::ProxyType<IDispatch>& job) override
         {
             ASSERT(job.IsValid() == true);
@@ -397,6 +409,7 @@ POP_WARNING()
         virtual const Metadata& Snapshot() const
         {
             _metadata.Pending = _threadPool.Pending();
+            _metadata.Scheduled = _timer.Pending();
             _external.Info(_metadata.Slot[0]);
             _metadata.Slot[0].WorkerId = _joined;
 

@@ -32,12 +32,18 @@ namespace Core {
         struct EXTERNAL IJob : public IDispatch {
             ~IJob() override = default;
 
-            virtual ProxyType<IDispatch> Resubmit(Time& time) = 0;
+            virtual ProxyType<IDispatch> Resubmit() = 0;
+        };
+        struct EXTERNAL IScheduleJob : public IDispatch {
+            ~IScheduleJob() override = default;
+
+            virtual ProxyType<IDispatch> Resubmit(uint64_t& time) = 0;
         };
         struct EXTERNAL IScheduler {
             virtual ~IScheduler() = default;
 
             virtual void Schedule(const Time& time, const ProxyType<IDispatch>& job) = 0;
+            virtual void Schedule(const uint32_t delayMs, const ProxyType<IDispatch>& job) = 0;
         };
         struct EXTERNAL IDispatcher {
             virtual ~IDispatcher() = default;
@@ -171,7 +177,6 @@ namespace Core {
                 SUBMITTED,
                 EXECUTING,
                 RESUBMIT,
-                SCHEDULE,
                 REVOKING
             };
 
@@ -186,8 +191,8 @@ namespace Core {
                 ~Worker() override = default;
 
             public:
-                ProxyType<IDispatch> Resubmit(Time& time) override {
-                    return (_parent.Resubmit(time));
+                ProxyType<IDispatch> Resubmit() override {
+                    return (_parent.Resubmit());
                 }
                 void Dispatch() override {
                     _parent.Dispatch();
@@ -222,19 +227,163 @@ POP_WARNING()
             bool IsIdle() const {
                 return (_state == IDLE);
             }
-            ProxyType<IDispatch> Idle() {
+            ProxyType<IDispatch> Submit() {
 
+                state executing = EXECUTING;
                 state idle = IDLE;
 
                 ProxyType<IDispatch> result;
 
-                if (_state.compare_exchange_strong(idle, SUBMITTED) == true) {
+                if ( (_state.compare_exchange_strong(executing, RESUBMIT)  == false) &&
+                     (_state.compare_exchange_strong(idle,      SUBMITTED) == true ) ) {
                     result = ProxyType<IDispatch>(ProxyType<Worker>(_job));
                 }
 
                 return (result);
             }
-            ProxyType<IDispatch> Submit() {
+            ProxyType<IDispatch> Revoke() {
+                ProxyType<IDispatch> result;
+                if (RevokeRequired() == true) {
+                    result = ProxyType<IDispatch>(ProxyType<Worker>(_job));
+                }
+                return (result);
+            }
+            void Revoked() {
+                state expected = REVOKING;
+                VARIABLE_IS_NOT_USED bool result = _state.compare_exchange_strong(expected, IDLE);
+                ASSERT(result == true);
+            }
+            operator IMPLEMENTATION& () {
+                return (_implementation);
+            }
+            operator const IMPLEMENTATION& () const {
+                return (_implementation);
+            }
+
+        private:
+            friend class ThreadPool;
+
+            ProxyType<IDispatch> Resubmit() {
+                ProxyType<IDispatch> result;
+                state executing = EXECUTING;
+
+                if (_state.compare_exchange_strong(executing, IDLE) == false) {
+                    state resubmit = RESUBMIT;
+                    if (_state.compare_exchange_strong(resubmit, SUBMITTED) == true) {
+                        result = ProxyType<IDispatch>(ProxyType<Worker>(_job));
+                    }
+                }
+                return (result);
+            }
+            bool RevokeRequired() {
+
+                bool result = (_state == REVOKING);
+
+                if (result == false) {
+                    state submitted = SUBMITTED;
+                    state executing = EXECUTING;
+                    state resubmit = RESUBMIT;
+
+                    if ((_state.compare_exchange_strong(submitted, REVOKING) == true) ||
+                        (_state.compare_exchange_strong(executing, REVOKING) == true) ||
+                        (_state.compare_exchange_strong(resubmit,  REVOKING) == true) ) {
+                        result = true;
+                    }
+                }
+
+                return (result);
+            }
+            void Dispatch() {
+                state expected = SUBMITTED;
+                if (_state.compare_exchange_strong(expected, EXECUTING) == true) {
+                    _implementation.Dispatch();
+                }
+            }
+            // -----------------------------------------------------
+            // Check for Clear method on Object
+            // -----------------------------------------------------
+            IS_MEMBER_AVAILABLE_INHERITANCE_TREE(JobIdentifier, hasJobIdentifier);
+
+            template <typename TYPE = IMPLEMENTATION>
+            inline typename Core::TypeTraits::enable_if<hasJobIdentifier<const TYPE, string>::value, string>::type
+                Identifier() const
+            {
+                return (_implementation.JobIdentifier());
+            }
+            template <typename TYPE = IMPLEMENTATION>
+            inline typename Core::TypeTraits::enable_if<!hasJobIdentifier<const TYPE, string>::value, string>::type
+                Identifier() const
+            {
+                return("UnknownJob");
+            }
+
+
+        private:
+            IMPLEMENTATION _implementation;
+            std::atomic<state> _state;
+            ProxyObject<Worker> _job;
+        };
+
+        template<typename IMPLEMENTATION, SCHREDULE_METHOD>
+        class DelayJobType {
+        private:
+            enum state : uint8_t {
+                IDLE,
+                SUBMITTED,
+                EXECUTING,
+                RESUBMIT,
+                SCHEDULE,
+                REVOKING
+            };
+
+            class Worker : public IScheduleJob {
+            public:
+                Worker() = delete;
+                Worker(const Worker&) = delete;
+                Worker& operator=(const Worker&) = delete;
+
+                Worker(JobType<IMPLEMENTATION>& parent) : _parent(parent) {
+                }
+                ~Worker() override = default;
+
+            public:
+                ProxyType<IDispatch> Resubmit(uint64_t& delay) override {
+                    return (_parent.Resubmit(delay));
+                }
+                void Dispatch() override {
+                    _parent.Dispatch();
+                }
+
+            private:
+                 JobType<IMPLEMENTATION>& _parent;
+            };
+
+        public:
+            DelayJobType(const DelayJobType<IMPLEMENTATION>& copy) = delete;
+            DelayJobType<IMPLEMENTATION>& operator=(const DelayJobType<IMPLEMENTATION>& RHS) = delete;
+
+PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
+            template <typename... Args>
+            DelayJobType(Args&&... args)
+                : _implementation(args...)
+                , _state(IDLE)
+                , _job(*this)
+                , _time()
+            {
+                _job.AddRef();
+            }
+POP_WARNING()
+            ~DelayJobType()
+            {
+                ASSERT (_state == IDLE);
+                _job.CompositRelease();
+            }
+
+        public:
+            bool IsIdle() const {
+                return (_state == IDLE);
+            }
+/*            ProxyType<IDispatch> Submit() {
 
                 state executing = EXECUTING;
                 state schedule = SCHEDULE;
@@ -249,13 +398,17 @@ POP_WARNING()
                 }
 
                 return (result);
-            }
-            ProxyType<IDispatch> Reschedule(const Time& time) {
+            }*/
+            ProxyType<IDispatch> Reschedule(uint64_t& delay) {
 
                 state executing = EXECUTING;
                 state submitted = SUBMITTED;
                 state resubmit = RESUBMIT;
                 state idle = IDLE;
+
+                if(tyime || Time << now) {
+                    SUBMITFUNTION
+                }
 
                 ProxyType<IDispatch> result;
 
@@ -263,6 +416,7 @@ POP_WARNING()
                      (_state.compare_exchange_strong(resubmit,    SCHEDULE) == false) &&
                      ( (_state.compare_exchange_strong(submitted, SCHEDULE) == true)  || 
                        (_state.compare_exchange_strong(idle,      SCHEDULE) == true) ) ) {
+                    SCHEDULE_FUNTION
                     result = ProxyType<IDispatch>(ProxyType<Worker>(_job));
                 }
                 else {

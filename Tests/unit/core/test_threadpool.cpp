@@ -912,10 +912,6 @@ public:
         _job.Revoked();
         return job;
     }
-    Core::ProxyType<Core::IDispatch> Idle()
-    {
-        return _job.Idle();
-    }
     bool IsIdle()
     {
         return _job.IsIdle();
@@ -955,19 +951,11 @@ void CheckThreadPool_JobType_Submit_Using_Idle(const uint8_t threadCount, const 
         Core::ProxyType<Core::IDispatch> job;
         if (isCanceledJob == true) {
             EXPECT_EQ(jobs[i]->IsIdle(), true);
-            job = (jobs[i]->Idle());
-            EXPECT_EQ(jobs[i]->IsIdle(), false);
             job = (jobs[i]->Revoke());
             EXPECT_EQ(jobs[i]->IsIdle(), true);
 
         } else {
             EXPECT_EQ(jobs[i]->IsIdle(), true);
-            job = (jobs[i]->Idle());
-            EXPECT_EQ(jobs[i]->IsIdle(), false);
-
-            // Try to get same job again
-            Core::ProxyType<Core::IDispatch> jobRetry = (jobs[i]->Idle());
-            EXPECT_EQ(jobRetry.IsValid(), false);
         }
         if (job.IsValid() && (jobs[i]->IsIdle() != true)) {
             if (threadPool.QueueIsFull() == false) {
@@ -1068,8 +1056,6 @@ void CheckThreadPool_JobType_Submit_Using_Submit(const uint8_t threadCount, cons
         Core::ProxyType<Core::IDispatch> job;
         if (isCanceledJob == true) {
             EXPECT_EQ(jobs[i]->IsIdle(), true);
-            job = (jobs[i]->Idle());
-            EXPECT_EQ(jobs[i]->IsIdle(), false);
             job = (jobs[i]->Revoke());
             EXPECT_EQ(jobs[i]->IsIdle(), true);
         } else {
@@ -1179,8 +1165,6 @@ void CheckThreadPool_JobType_Submit_Using_Reschedule(const uint8_t threadCount, 
         Core::ProxyType<Core::IDispatch> job;
         if (isCanceledJob == true) {
             EXPECT_EQ(jobs[i]->IsIdle(), true);
-            job = (jobs[i]->Idle());
-            EXPECT_EQ(jobs[i]->IsIdle(), false);
             job = (jobs[i]->Revoke());
             EXPECT_EQ(jobs[i]->IsIdle(), true);
         } else {

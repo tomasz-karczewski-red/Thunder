@@ -68,7 +68,7 @@ namespace Core {
 
 public:
         //time always in UTC
-        Time(const struct timespec& time);
+        explicit Time(const struct timespec& time);
 
 #endif
         Time(const uint16_t year, const uint8_t month, const uint8_t day, const uint8_t hour, const uint8_t minute, const uint8_t seconds, const uint16_t milliseconds, const bool localTime);
@@ -81,7 +81,7 @@ public:
         }
 #endif
 
-        Time(const microsecondsfromepoch time);
+        explicit Time(const microsecondsfromepoch time);
 
 #ifdef __WINDOWS__
         Time()
@@ -554,6 +554,88 @@ public:
 
     private:
         Time _time;
+    };
+
+    class EXTERNAL InvariantTime {
+    private:
+
+#ifdef __POSIX__
+
+        InvariantTime(const struct timespec& time);
+        
+#endif
+        InvariantTime(const uint64_t time);
+
+    public:
+
+        InvariantTime(const InvariantTime& copy)
+            : _time(copy._time)
+        {
+        }
+
+        ~InvariantTime() = default;
+
+        InvariantTime& operator=(const InvariantTime& RHS)
+        {
+            _time = RHS._time;
+
+            return (*this);
+        }
+
+        uint64_t Ticks() const;
+
+        static InvariantTime Now();
+
+        InvariantTime& Add(const uint32_t timeInMilliseconds);
+        InvariantTime& Sub(const uint32_t timeInMilliseconds);
+
+        bool operator<(const InvariantTime& rhs) const
+        {
+            return (Ticks() < rhs.Ticks());
+        }
+        bool operator<=(const InvariantTime& rhs) const
+        {
+            return (Ticks() <= rhs.Ticks());
+        }
+        bool operator>(const InvariantTime& rhs) const
+        {
+            return (Ticks() > rhs.Ticks());
+        }
+        bool operator>=(const InvariantTime& rhs) const
+        {
+            return (Ticks() >= rhs.Ticks());
+        }
+        bool operator==(const InvariantTime& rhs) const
+        {
+            return (Ticks() == rhs.Ticks());
+        }
+        bool operator!=(const InvariantTime& rhs) const
+        {
+            return (!(operator==(rhs)));
+        }
+        InvariantTime operator-(const InvariantTime& rhs) const
+        {
+            return (InvariantTime(Ticks() - rhs.Ticks()));
+        }
+        InvariantTime operator+(const InvariantTime& rhs) const
+        {
+            return (InvariantTime(Ticks() + rhs.Ticks()));
+        }
+        InvariantTime& operator-=(const InvariantTime& rhs)
+        {
+            return (operator=(InvariantTime(Ticks() - rhs.Ticks())));
+        }
+        InvariantTime& operator+=(const Time& rhs)
+        {
+            return (operator=(InvariantTime(Ticks() + rhs.Ticks())));
+        }
+
+    private:
+#ifdef __WINDOWS__
+        uint64_t _time;
+#else
+        struct timespec _time;
+#endif
     };
 
 }

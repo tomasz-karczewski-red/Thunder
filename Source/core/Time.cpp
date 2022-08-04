@@ -1199,5 +1199,75 @@ POP_WARNING()
         }
         return (((day > 0) && (day <= totalDays)) ? true : false);
     }
+
+#ifdef __POSIX__
+
+    InvariantTime::InvariantTime(const struct timespec& time) 
+        : _time(time)
+    {
+    }
+
+    InvariantTime::InvariantTime(const uint64_t time)
+        : _time()
+    {
+        _time.tv_sec = static_cast<time_t>(time / Time::MicroSecondsPerSecond); 
+
+        _time.tv_nsec = (time % Time::MicroSecondsPerSecond) * Time::NanoSecondsPerMicroSecond;
+    }
+
+    uint64_t InvariantTime::Ticks() const
+    {
+        return ((static_cast<uint64_t>(_time.tv_sec) * Time::MicroSecondsPerSecond ) + (static_cast<uint64_t>(_time.tv_nsec)/Time::NanoSecondsPerMicroSecond));
+    }
+
+    /* static */ InvariantTime InvariantTime::Now()
+    {
+        struct timespec currentTime{};
+        clock_gettime(CLOCK_MONOTONIC, &currentTime);
+
+        return (InvariantTime(currentTime));
+    }
+
+    InvariantTime& InvariantTime::Add(const uint32_t timeInMilliseconds)
+    {
+        uint64_t newTime = Ticks() + static_cast<uint64_t>(timeInMilliseconds) * Time::MilliSecondsPerSecond;
+        return (operator=(InvariantTime(newTime)));
+    }
+
+    InvariantTime& InvariantTime::Sub(const uint32_t timeInMilliseconds)
+    {
+        uint64_t newTime = Ticks() - static_cast<uint64_t>(timeInMilliseconds) * Time::MilliSecondsPerSecond;
+        return (operator=(InvariantTime(newTime)));
+    }
+
+#else
+
+    InvariantTime::InvariantTime(const uint64_t time)
+        : _time(time)
+    {
+    }
+
+    uint64_t InvariantTime::Ticks() const
+    {
+        return _time;
+    }
+
+    /* static */ InvariantTime InvariantTime::Now()
+    {
+        return (InvariantTime(GetTickCount64()));
+    }
+
+    InvariantTime& InvariantTime::Add(const uint32_t timeInMilliseconds)
+    {
+        return (operator=(InvariantTime(_time + timeInMilliseconds)));
+    }
+
+    InvariantTime& InvariantTime::Sub(const uint32_t timeInMilliseconds)
+    {
+        return (operator=(InvariantTime(_time - timeInMilliseconds)));
+    }
+
+#endif
+
 }
 } // namespace Core

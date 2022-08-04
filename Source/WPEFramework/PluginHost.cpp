@@ -631,6 +631,56 @@ POP_WARNING()
                     keyPress = toupper(getchar());
 
                     switch (keyPress) {
+                    case 'A' : {
+                        printf("Huppel: setting time 1\n");
+                        Core::SystemInfo::Instance().SetTime(Core::Time(2021, 07, 24, 21, 0, 0, 0, true));
+                        break;
+                    }
+                    case 'B' : {
+                        printf("Huppel: setting time 2\n");
+                        Core::SystemInfo::Instance().SetTime(Core::Time(2022, 07, 24, 21, 0, 0, 0, true));
+                        break;
+                    }
+                    case 'F' : {
+                        printf("Huppel: setting time just before wintertime\n");
+                        Core::SystemInfo::Instance().SetTime(Core::Time(2021, 10, 31, 2,59, 0, 0, true));
+                        break;
+                    }
+                    case 'G' : {
+                        printf("Huppel: getting local time\n");
+                        string time;
+                        Core::Time::Now().ToString(time);
+                        printf("Huppel time is: %s\n", time.c_str());
+                        break;
+                    }
+                    case 'D' : {
+
+                        class HuppelJob : public Core::IDispatch {
+                        public:
+                            HuppelJob(uint8_t n) : _n(n) {}
+                            void Dispatch() override
+                            {
+                                printf("Huppel : Wakey Wakey %u !!!!!!!!!!!!!!!!!!!!!!\n", _n);
+                            }
+                            uint8_t _n;
+                        };
+
+                        printf("Huppel: posting job 2 and 4 minutes\n");
+                        Core::ProxyType<Core::IDispatch> t;
+                        t = Core::ProxyType<HuppelJob>::Create(1);
+                        Core::WorkerPool::Instance().Schedule(Core::Time::Now().Add(2*60*1000), t);
+                        t.Release();
+                        t = Core::ProxyType<HuppelJob>::Create(2);
+                        Core::WorkerPool::Instance().Schedule(Core::Time::Now().Add(4*60*1000), t);
+                        t.Release();
+                        t = Core::ProxyType<HuppelJob>::Create(3);
+                        Core::WorkerPool::Instance().Schedule(2000, t);
+                        t.Release();
+                        t = Core::ProxyType<HuppelJob>::Create(4);
+                        Core::WorkerPool::Instance().Schedule(4000, t);
+                        t.Release();
+                        break;
+                    }
                     case 'C': {
                         Core::JSON::ArrayType<MetaData::Channel> metaData;
                         _dispatcher->Dispatcher().GetMetaData(metaData);
@@ -791,6 +841,7 @@ POP_WARNING()
                             printf("------------------------------------------------------------\n");
                         }
                         printf("Pending:     %d\n", metaData.Pending);
+                        printf("Scheduled:   %d\n", metaData.Scheduled);
                         printf("Poolruns:\n");
                         for (uint8_t index = 0; index < metaData.Slots; index++) {
                            printf("  Thread%02d|0x%08X: %10d", (index + 1), static_cast<uint32_t>(metaData.Slot[index].WorkerId), metaData.Slot[index].Runs);
