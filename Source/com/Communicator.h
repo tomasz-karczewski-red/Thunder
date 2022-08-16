@@ -473,6 +473,9 @@ namespace RPC {
             uint32_t RemoteId() const override;
             void* Aquire(const uint32_t waitTime, const string& className, const uint32_t interfaceId, const uint32_t version) override;
             void Terminate() override;
+            void ForceTerminate() override
+            {
+            }
             void PostMortem() override
             {
                 // This is really something that needs to be done by the specific implementations.
@@ -566,6 +569,7 @@ namespace RPC {
             END_INTERFACE_MAP
 
             void Terminate() override;
+            void ForceTerminate() override;
             uint32_t RemoteId() const override;
 
         private:

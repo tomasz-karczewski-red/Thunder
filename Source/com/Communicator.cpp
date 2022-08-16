@@ -375,6 +375,12 @@ namespace RPC {
         g_destructor.Destruct<LocalClosingInfo>(Id(), _id);
     }
 
+    /* virtual */ void Communicator::LocalProcess::ForceTerminate()
+    {
+        ASSERT(_id != 0);
+        g_destructor.ForceDestruct(Id());
+    }
+
     uint32_t Communicator::LocalProcess::RemoteId() const
     {
         return (_id);
