@@ -33,7 +33,41 @@ ENUM_CONVERSION_BEGIN(PluginHost::VirtualInput::KeyMap::modifier)
     { PluginHost::VirtualInput::KeyMap::LEFTCTRL, _TXT("leftctrl") },
     { PluginHost::VirtualInput::KeyMap::RIGHTCTRL, _TXT("rightctrl") },
 
-    ENUM_CONVERSION_END(PluginHost::VirtualInput::KeyMap::modifier)
+ENUM_CONVERSION_END(PluginHost::VirtualInput::KeyMap::modifier)
+
+namespace {
+    class InputEvent {
+    public:
+        InputEvent(InputEvent&&) = delete;
+        InputEvent(const InputEvent&) = delete;
+        InputEvent& operator=(const InputEvent&) = delete;
+
+        InputEvent(const IVirtualInput::KeyData& data) {
+            _text = Core::ToString(string("KeyData: "));
+        }
+        InputEvent(const IVirtualInput::MouseData& data) {
+            _text = Core::ToString(string("MouseData: "));
+        }
+        InputEvent(const IVirtualInput::TouchData& data) {
+            _text = Core::ToString(string("TouchData: "));
+        }
+        ~InputEvent() = default;
+
+    public:
+        inline const char* Data() const
+        {
+            return (_text.c_str());
+        }
+        inline uint16_t Length() const
+        {
+            return (static_cast<uint16_t>(_text.length()));
+        }
+
+    private:
+        std::string _text;
+    };
+
+}
 
 namespace PluginHost
 {
@@ -764,6 +798,7 @@ POP_WARNING()
 
         message->Parameters() = data;
         Core::ProxyType<Core::IIPC> base(message);
+        TRACE(InputEvent, (data));
         _service.Invoke(base, RPC::CommunicationTimeOut);
     }
 
@@ -773,6 +808,7 @@ POP_WARNING()
 
         message->Parameters() = data;
         Core::ProxyType<Core::IIPC> base(message);
+        TRACE(InputEvent, (data));
         _service.Invoke(base, RPC::CommunicationTimeOut);
     }
 
@@ -782,6 +818,7 @@ POP_WARNING()
 
         message->Parameters() = data;
         Core::ProxyType<Core::IIPC> base(message);
+        TRACE(InputEvent, (data));
         _service.Invoke(base, RPC::CommunicationTimeOut);
     }
 
