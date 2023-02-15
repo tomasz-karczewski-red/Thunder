@@ -33,7 +33,6 @@ set(PUBLIC_HEADERS
         )
 
 set(SOURCES 
-        Module.cpp
         MessageClient.cpp
         MessageUnit.cpp
         TraceCategories.cpp
@@ -41,10 +40,14 @@ set(SOURCES
         DirectOutput.cpp
 )
 
+if (NOT BUILD_LIB_AS_STATIC)
+  list(APPEND SOURCES Module.cpp)
+endif()
+
 
 set(TARGET ${NAMESPACE}Messaging)
 
-add_library(${TARGET} SHARED ${SOURCES})
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
 
 target_compile_definitions(${TARGET} PRIVATE MESSAGING_EXPORTS)
 

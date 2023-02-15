@@ -27,11 +27,10 @@ ProxyStubGenerator(NAMESPACE "WPEFramework::PluginHost" INPUT "${CMAKE_CURRENT_S
 ProxyStubGenerator(NAMESPACE "WPEFramework::PluginHost" INPUT "${CMAKE_CURRENT_SOURCE_DIR}/IStateControl.h" OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 ProxyStubGenerator(NAMESPACE "WPEFramework::PluginHost" INPUT "${CMAKE_CURRENT_SOURCE_DIR}/ISubSystem.h" OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
-add_library(${TARGET} SHARED
+set(SOURCES
         Channel.cpp
         JSONRPC.cpp
         MetaData.cpp
-        Module.cpp
         Service.cpp
         Shell.cpp
         StateControl.cpp
@@ -40,14 +39,21 @@ add_library(${TARGET} SHARED
         System.cpp
         )
 
-add_library(${TARGET_PROXYSTUBS} SHARED
+set(PROXYSTUBS_SOURCES
         ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_Plugin.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_Shell.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_Controller.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_StateControl.cpp
         ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_SubSystem.cpp
-        Module.cpp
         )
+
+if (NOT BUILD_LIB_AS_STATIC)
+  list(APPEND SOURCES Module.cpp)
+  list(APPEND PROXYSTUBS_SOURCES Module.cpp)
+endif()
+
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
+add_library(${TARGET_PROXYSTUBS} ${THUNDER_LIBRARY_TYPE} ${PROXYSTUBS_SOURCES})
 
 set(PUBLIC_HEADERS
         Channel.h

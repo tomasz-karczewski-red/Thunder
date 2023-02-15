@@ -92,6 +92,11 @@ if(TRACING AND MESSAGING)
     set(TRACING OFF)
 endif()
 
+find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
+find_package(ExecInfo)
+find_package(LIBRT)
+
 if(CORE)
     add_subdirectory(core)
 endif()

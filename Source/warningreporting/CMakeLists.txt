@@ -16,11 +16,7 @@
 # limitations under the License.
 
 set(TARGET ${NAMESPACE}WarningReporting)
-
-add_library(${TARGET} SHARED
-        Module.cpp
-        WarningReportingUnit.cpp
-        )
+set(SOURCES WarningReportingUnit.cpp)
 
 set(PUBLIC_HEADERS
         IWarningReportingMedia.h
@@ -28,6 +24,12 @@ set(PUBLIC_HEADERS
         warningreporting.h
         Module.h
         )
+
+if (NOT BUILD_LIB_AS_STATIC)
+        list(APPEND SOURCES Module.cpp)
+endif()
+
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
 
 target_compile_definitions(${TARGET} PRIVATE WARNINGREPORTING_EXPORTS)
 

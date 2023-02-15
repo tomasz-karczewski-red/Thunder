@@ -20,14 +20,13 @@ set(TARGET ${NAMESPACE}COM)
 ProxyStubGenerator(NAMESPACE "WPEFramework::RPC" INPUT "${CMAKE_CURRENT_SOURCE_DIR}/ICOM.h" OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(MESSAGING)
-  add_library(${TARGET} SHARED
+  set(SOURCES
           Administrator.cpp
           Communicator.cpp
           IUnknown.cpp
           ConnectorType.cpp
-          Module.cpp
           ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_COM.cpp
-          )
+	  )
   
   set(PUBLIC_HEADERS
           Administrator.h
@@ -45,15 +44,15 @@ if(MESSAGING)
           Module.h
           Module.h
           )
+
 else()
   ProxyStubGenerator(NAMESPACE "WPEFramework::Trace" INPUT "${CMAKE_CURRENT_SOURCE_DIR}/ITrace.h" OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-  add_library(${TARGET} SHARED
+  set(SOURCES
           Administrator.cpp
           Communicator.cpp
           ITracing.cpp
           IUnknown.cpp
           ConnectorType.cpp
-          Module.cpp
           ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_COM.cpp
           ${CMAKE_CURRENT_BINARY_DIR}/generated/ProxyStubs_Trace.cpp
           )
@@ -77,12 +76,17 @@ else()
           )
 endif()
 
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
+
+if (NOT BUILD_LIB_AS_STATIC)
+	list(APPEND SOURCES Module.cpp)
+endif()
 
 target_link_libraries(${TARGET}
         PRIVATE
+          CompileSettingsDebug::CompileSettingsDebug
           ${NAMESPACE}Core::${NAMESPACE}Core
           ${NAMESPACE}Messaging::${NAMESPACE}Messaging
-          CompileSettingsDebug::CompileSettingsDebug
         )
 
 if (WARNING_REPORTING)

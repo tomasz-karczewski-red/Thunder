@@ -31,10 +31,13 @@ option(PROCESSCONTAINERS_DOBBY
 option(PROCESSCONTAINERS_AWC
         "Use AWC/slauncher - One Middleware backend." OFF)
 
+if (NOT BUILD_LIB_AS_STATIC)
+	set(SOURCES Module.cpp)
+endif()
+
+
 # Construct a library object
-add_library(${TARGET} SHARED
-        Module.cpp
-        )
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
 
 # Selects backend
 if (PROCESSCONTAINERS_LXC)

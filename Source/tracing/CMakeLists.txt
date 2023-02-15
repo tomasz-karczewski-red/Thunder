@@ -17,8 +17,7 @@
 
 set(TARGET ${NAMESPACE}Tracing)
 
-add_library(${TARGET} SHARED
-        Module.cpp
+set(SOURCES
         TraceCategories.cpp
         TraceMedia.cpp
         TraceUnit.cpp
@@ -36,6 +35,12 @@ set(PUBLIC_HEADERS
         tracing.h
         Module.h
         )
+
+if (NOT BUILD_LIB_AS_STATIC)
+        list(APPEND  SOURCES Module.cpp)
+endif()
+
+add_library(${TARGET} ${THUNDER_LIBRARY_TYPE} ${SOURCES})
 
 target_compile_definitions(${TARGET} PRIVATE TRACING_EXPORTS)
 
