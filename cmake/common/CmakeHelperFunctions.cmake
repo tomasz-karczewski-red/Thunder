@@ -64,7 +64,7 @@ function(get_if_link_libraries libs dirs target)
     if("${_type}" MATCHES "SHARED_LIBRARY" OR "${_type}" MATCHES "STATIC_LIBRARY")
         if(_is_imported)
             get_target_property(_configurations ${target} IMPORTED_CONFIGURATIONS)
-            
+
             if (_configurations)
                 list(LENGTH _configurations _configurations_count)
 
@@ -106,7 +106,7 @@ function(get_if_link_libraries libs dirs target)
         # this lib is via a findmodule imported, grab the imported location  asuming it's fins script is accourdng guidelines
         # we remove the absolute systroot to make it relative. Later we can decide to use the path in a -L argument <;-)
         get_target_property(_configurations ${target} IMPORTED_CONFIGURATIONS)
-        
+
         if (_configurations)
             list(LENGTH _configurations _configurations_count)
 
@@ -119,6 +119,7 @@ function(get_if_link_libraries libs dirs target)
         endif()
         
         get_target_property(_location ${target} IMPORTED_LOCATION${config})
+        unset(config)
 
         if (_location)
                 _get_default_link_name(${_location} _name _dir)
@@ -403,7 +404,7 @@ function(InstallCMakeConfig)
                         if(_type_is_ok)
                             if(_is_imported)
                                 get_target_property(_configurations ${_dependency} IMPORTED_CONFIGURATIONS)
-                            
+
                                 if (_configurations)
                                     list(LENGTH _configurations _configurations_count)
 
@@ -414,12 +415,16 @@ function(InstallCMakeConfig)
                                         message(AUTHOR_WARNING "Multiple configs not yet supported, got ${_configurations} and picked the first one")
                                     endif()
                                 endif()
-                            
-                                    #get_target_property(_dep_loc ${_dependency} IMPORTED_LOCATION${config})
-                                    #_get_default_link_name(${_dep_loc} _dep_name _dep_dir)
+
+                                if("${_type}" STREQUAL "STATIC_LIBRARY")
+                                    get_target_property(_dep_loc ${_dependency} IMPORTED_LOCATION${config})
+                                    _get_default_link_name(${_dep_loc} _dep_name _dep_dir)
+                                else()
                                     get_target_property( _dep_name ${_dependency} NAME)
                                     string(REPLACE "::" ";" vars ${_dep_name})
                                     list(GET vars 0 _dep_name)
+                                endif()
+
                             else()
                                 get_target_property(_dep_name ${_dependency} OUTPUT_NAME)
                                 if(NOT _dep_name)
