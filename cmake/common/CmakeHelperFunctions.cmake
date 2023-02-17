@@ -415,12 +415,13 @@ function(InstallCMakeConfig)
                                     endif()
                                 endif()
                             
-                                    get_target_property(_dep_loc ${_dependency} IMPORTED_LOCATION${config})
-
-                                    _get_default_link_name(${_dep_loc} _dep_name _dep_dir)
+                                    #get_target_property(_dep_loc ${_dependency} IMPORTED_LOCATION${config})
+                                    #_get_default_link_name(${_dep_loc} _dep_name _dep_dir)
+                                    get_target_property( _dep_name ${_dependency} NAME)
+                                    string(REPLACE "::" ";" vars ${_dep_name})
+                                    list(GET vars 0 _dep_name)
                             else()
                                 get_target_property(_dep_name ${_dependency} OUTPUT_NAME)
-
                                 if(NOT _dep_name)
                                     get_target_property( _dep_name ${_dependency} NAME)
                                 endif()

@@ -42,7 +42,6 @@ if (BUILD_LIB_AS_STATIC)
     set(THUNDER_LIBRARY_TYPE STATIC)
 else ()
     set(THUNDER_LIBRARY_TYPE SHARED)
-    add_definitions(-DSHARED_LIB=ON)
 endif()
 
 if (BUILD_REFERENCE)
@@ -119,6 +118,12 @@ install(DIRECTORY
             "${CMAKE_SOURCE_DIR}/cmake/common"
             "${CMAKE_SOURCE_DIR}/cmake/templates"
         DESTINATION lib/cmake/${NAMESPACE})
+
+if (BUILD_LIB_AS_STATIC)
+    install(DIRECTORY
+            "${CMAKE_SOURCE_DIR}/cmake/modules"
+        DESTINATION lib/cmake/${NAMESPACE})
+endif ()
 
 if(APPLE)
     # Mac needed variables
