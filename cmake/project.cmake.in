@@ -207,4 +207,7 @@ function(print_target_properties tgt)
     endforeach(prop)
 endfunction(print_target_properties)
 
+find_package(Threads)
+find_package(CompileSettingsDebug CONFIG)
+
 find_package(ConfigGenerator REQUIRED)

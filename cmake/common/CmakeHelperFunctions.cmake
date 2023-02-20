@@ -119,7 +119,6 @@ function(get_if_link_libraries libs dirs target)
         endif()
         
         get_target_property(_location ${target} IMPORTED_LOCATION${config})
-        unset(config)
 
         if (_location)
                 _get_default_link_name(${_location} _name _dir)

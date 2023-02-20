@@ -17,5 +17,6 @@
  * limitations under the License.
  */
 #include "Module.h"
+#include "SystemInfo.h"
 
 MODULE_NAME_DECLARATION(BUILD_REFERENCE)

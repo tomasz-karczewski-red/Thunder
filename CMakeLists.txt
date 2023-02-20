@@ -36,7 +36,7 @@ option(LEGACY_CONFIG_GENERATOR
      If switched OFF, plugins need to use the new python-based templates. (*.conf.in)" ON) 
 option(BUILD_PLUGIN_ACTIVATOR
      "Build the standalone plugin activator utility to activate plugins using systemd" OFF)
-option(BUILD_LIB_AS_STATIC "Create thunder library as static library" ON)
+option(BUILD_LIB_AS_STATIC "Create thunder library as static library" OFF)
 
 if (BUILD_LIB_AS_STATIC)
     set(THUNDER_LIBRARY_TYPE STATIC)
