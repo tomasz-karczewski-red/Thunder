@@ -31,10 +31,11 @@ namespace Plugin {
 
     class Controller 
         : public PluginHost::IController
-        , public Exchange::IControllerExt
         , public PluginHost::IPlugin
         , public PluginHost::IWeb
-        , public PluginHost::JSONRPC {
+        , public PluginHost::JSONRPC
+        , public Exchange::IControllerExt
+        , public Exchange::IControllerExt::INotification {
     public:
         class CallstackData : public Core::JSON::Container {
         public:
@@ -103,6 +104,41 @@ namespace Plugin {
             Core::JSON::DecUInt32 Line;
         };
 
+	class SubsystemsData : public Core::JSON::Container {
+        public:
+            SubsystemsData()
+                : Core::JSON::Container()
+            {
+                Init();
+            }
+
+            SubsystemsData(const SubsystemsData& other)
+                : Core::JSON::Container()
+                , Subsystem(other.Subsystem)
+                , Active(other.Active)
+            {
+                Init();
+            }
+
+            SubsystemsData& operator=(const SubsystemsData& rhs)
+            {
+                Subsystem = rhs.Subsystem;
+                Active = rhs.Active;
+                return (*this);
+            }
+
+        private:
+            void Init()
+            {
+                Add(_T("subsystem"), &Subsystem);
+                Add(_T("active"), &Active);
+            }
+
+        public:
+            Core::JSON::EnumType<PluginHost::ISubSystem::subsystem> Subsystem;
+            Core::JSON::Boolean Active;
+        };
+
     private:
         class Sink 
             : public PluginHost::IPlugin::INotification
@@ -146,7 +182,7 @@ namespace Plugin {
             }
             void Activated(const string& callsign, PluginHost::IShell* plugin) override
             {
-                //_parent.event_statechange(callsign, PluginHost::IShell::ACTIVATED, plugin->Reason());
+                _parent.NotifyStateChange(callsign, PluginHost::IShell::ACTIVATED, plugin->Reason());
 
                 // Make sure the resumes 
                 _parent.StartupResume(callsign, plugin);
@@ -154,11 +190,11 @@ namespace Plugin {
             }
             void Deactivated(const string& callsign, PluginHost::IShell* plugin) override
             {
-                //_parent.event_statechange(callsign, PluginHost::IShell::DEACTIVATED, plugin->Reason());
+                _parent.NotifyStateChange(callsign, PluginHost::IShell::DEACTIVATED, plugin->Reason());
             }
             void Unavailable(const string& callsign, PluginHost::IShell* plugin) override
             {
-                //_parent.event_statechange(callsign, PluginHost::IShell::UNAVAILABLE, plugin->Reason());
+                _parent.NotifyStateChange(callsign, PluginHost::IShell::UNAVAILABLE, plugin->Reason());
             }
 
             BEGIN_INTERFACE_MAP(Sink)
@@ -240,6 +276,7 @@ namespace Plugin {
             , _resumes()
             , _lastReported()
             , _externalSubsystems()
+            , _observers()
         {
         }
         POP_WARNING();
@@ -361,8 +398,8 @@ namespace Plugin {
 
         // IControllerExt methods
         // -------------------------------------------------------------------------------------------------------
-        uint32_t Register(IControllerExt::INotification* sink) override;
-        uint32_t Unregister(IControllerExt::INotification* sink) override;
+        uint32_t Register(IControllerExt::INotification* notification) override;
+        uint32_t Unregister(IControllerExt::INotification* notification) override;
 
         uint32_t Activate(const string& callsign) override;
         uint32_t Deactivate(const string& callsign) override;
@@ -371,6 +408,7 @@ namespace Plugin {
         uint32_t Resume(const string& callsign) override;
         uint32_t Clone(const string& callsign, const string& newcallsign, string& response /* @out */) override;
         uint32_t Harakiri() override;
+        uint32_t StoreConfig() override;
         uint32_t Proxies(string& response) const override;
         uint32_t StartDiscovery(const uint8_t& ttl) override;
 
@@ -380,6 +418,9 @@ namespace Plugin {
         uint32_t ProcessInfo(string& response) const override;
         uint32_t Subsystems(string& response) const override;
         uint32_t DiscoveryResults(string& response) const override;
+        uint32_t Version(string& response) const override;
+        void StateChange(const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason) override;
+
         //uint32_t Environment(const string& index, string& environment) const override;
         //uint32_t Configuration(const string& callsign, string& configuration) const override;
         //uint32_t Configuration(const string& callsign, const string& configuration) override;
@@ -391,6 +432,8 @@ namespace Plugin {
         INTERFACE_ENTRY(PluginHost::IWeb)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_ENTRY(PluginHost::IController)
+        INTERFACE_ENTRY(Exchange::IControllerExt)
+        INTERFACE_ENTRY(Exchange::IControllerExt::INotification)
         END_INTERFACE_MAP
 
     private:
@@ -417,6 +460,7 @@ namespace Plugin {
         Core::ProxyType<Web::Response> PutMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> DeleteMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         void StartupResume(const string& callsign, PluginHost::IShell* plugin);
+        void NotifyStateChange(const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason);
 
     private:
         Core::CriticalSection _adminLock;
@@ -429,6 +473,7 @@ namespace Plugin {
         std::list<string> _resumes;
         uint32_t _lastReported;
         std::vector<PluginHost::ISubSystem::subsystem> _externalSubsystems;
+        std::list<Exchange::IControllerExt::INotification*> _observers;
     };
 }
 }
