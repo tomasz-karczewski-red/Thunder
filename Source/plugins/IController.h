@@ -72,17 +72,16 @@ namespace Exchange {
         virtual uint32_t Unavailable(const string& callsign) = 0;
         virtual uint32_t Suspend(const string& callsign) = 0;
         virtual uint32_t Resume(const string& callsign) = 0;
-        virtual uint32_t Clone(const string& callsign, const string& newcallsign, string& response /* @out */) = 0;
-        virtual uint32_t Harakiri() = 0;
-        virtual uint32_t StoreConfig() = 0;
-        virtual uint32_t Proxies(string& response /* @out @opaque */) const = 0;
+        virtual uint32_t Hibernate(const string& callsign, const uint32_t timeout) = 0;
         virtual uint32_t StartDiscovery(const uint8_t& ttl) = 0;
+        virtual uint32_t StoreConfig() = 0;
         virtual uint32_t Delete(const string& path /* @in @opaque */) = 0;
+        virtual uint32_t Harakiri() = 0;
+        virtual uint32_t Proxies(string& response /* @out @opaque */) const = 0;
+        virtual uint32_t Clone(const string& callsign, const string& newcallsign, string& response /* @out */) = 0;
 
         // @property
         virtual uint32_t Status(const string& index /* @index */, string& response /* @out @opaque */) const = 0;
-        // @property
-        virtual uint32_t CallStack(const string& index /* @index */, string& callstack /* @out @opaque */) const = 0;
         // @property
         virtual uint32_t Links(string& response /* @out @opaque */) const = 0;
         // @property
@@ -92,16 +91,14 @@ namespace Exchange {
         // @property
         virtual uint32_t DiscoveryResults(string& response /* @out @opaque */) const = 0;
         // @property
-        virtual uint32_t Version(string& response /* @out @opaque */) const = 0;
-
-        // @property
         virtual uint32_t Environment(const string& index /* @index */, string& environment /* @out */ ) const = 0;
-
         // @property
         virtual uint32_t Configuration(const string& callsign /* @index */, string& configuration /* @out */) const = 0;
         virtual uint32_t Configuration(const string& callsign /* @index */, const string& configuration) = 0;
-
-
+        // @property
+        virtual uint32_t CallStack(const string& index /* @index */, string& callstack /* @out @opaque */) const = 0;
+        // @property
+        virtual uint32_t Version(string& response /* @out @opaque */) const = 0;
     };
 } // namespace Exchange
 } // namespace WPEFramework

@@ -488,7 +488,6 @@ namespace Plugin {
 
         return (result);
     }
-
     Core::ProxyType<Web::Response> Controller::PutMethod(Core::TextSegmentIterator& index, const Web::Request& request)
     {
         Core::ProxyType<Web::Response> result(PluginHost::IFactories::Instance().Response());
@@ -986,6 +985,34 @@ namespace Plugin {
 
         return result;
     }
+    uint32_t Controller::Resume(const string& callsign)
+    {
+        uint32_t result = Core::ERROR_NONE;
+        ASSERT(_pluginServer != nullptr);
+
+        if (callsign != Callsign()) {
+            Core::ProxyType<PluginHost::Server::Service> service;
+
+            if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
+                ASSERT(service.IsValid());
+                result = service->Resume(PluginHost::IShell::REQUESTED);
+
+                // Normalise return code
+                if ((result != Core::ERROR_NONE) && (result != Core::ERROR_ILLEGAL_STATE) && (result !=  Core::ERROR_INPROGRESS) && (result != Core::ERROR_PENDING_CONDITIONS)) {
+                    result = Core::ERROR_OPENING_FAILED;
+                }
+            }
+            else {
+                result = Core::ERROR_UNKNOWN_KEY;
+            }
+        }
+        else {
+            result = Core::ERROR_PRIVILIGED_REQUEST;
+        }
+
+        return result;
+    }
+
 
     uint32_t Controller::Clone(const string& callsign, const string& newcallsign, string& response)
     {

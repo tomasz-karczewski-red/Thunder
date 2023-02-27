@@ -421,10 +421,6 @@ namespace Plugin {
         uint32_t Version(string& response) const override;
         void StateChange(const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason) override;
 
-        //uint32_t Environment(const string& index, string& environment) const override;
-        //uint32_t Configuration(const string& callsign, string& configuration) const override;
-        //uint32_t Configuration(const string& callsign, const string& configuration) override;
-
         //  IUnknown methods
         // -------------------------------------------------------------------------------------------------------
         BEGIN_INTERFACE_MAP(Controller)
