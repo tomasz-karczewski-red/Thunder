@@ -91,9 +91,9 @@ namespace Exchange {
         // @property
         virtual uint32_t DiscoveryResults(string& response /* @out @opaque */) const = 0;
         // @property
-        virtual uint32_t Environment(const string& index /* @index */, string& environment /* @out */ ) const = 0;
+        virtual uint32_t Environment(const string& index /* @index */, string& environment /* @out @opaque */ ) const = 0;
         // @property
-        virtual uint32_t Configuration(const string& callsign /* @index */, string& configuration /* @out */) const = 0;
+        virtual uint32_t Configuration(const string& callsign /* @index */, string& configuration /* @out @opaque */) const = 0;
         virtual uint32_t Configuration(const string& callsign /* @index */, const string& configuration) = 0;
         // @property
         virtual uint32_t CallStack(const string& index /* @index */, string& callstack /* @out @opaque */) const = 0;
