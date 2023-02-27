@@ -50,7 +50,7 @@ namespace PluginHost {
 
 namespace Exchange {
     // @stubgen:omit
-    // @json
+    // @json @uncompliant:extended
     struct EXTERNAL IControllerExt : public virtual Core::IUnknown {
         enum { ID = RPC::ID_CONTROLLER_EXT };
 
@@ -94,7 +94,7 @@ namespace Exchange {
         virtual uint32_t Environment(const string& index /* @index */, string& environment /* @out @opaque */ ) const = 0;
         // @property
         virtual uint32_t Configuration(const string& callsign /* @index */, string& configuration /* @out @opaque */) const = 0;
-        virtual uint32_t Configuration(const string& callsign /* @index */, const string& configuration) = 0;
+        virtual uint32_t Configuration(const string& callsign /* @index */, const string& configuration /* @opaque */) = 0;
         // @property
         virtual uint32_t CallStack(const string& index /* @index */, string& callstack /* @out @opaque */) const = 0;
         // @property
