@@ -738,7 +738,7 @@ namespace PluginHost {
                     return (result);
                 }
                 uint32_t Hibernate(const uint32_t timeout) override {
-                    uint32_t result;
+                    uint32_t result = Core::ERROR_UNAVAILABLE;
                     PluginHost::IShell* source = Source();
                     if (source != nullptr) {
                         result = source->Hibernate(timeout);
@@ -756,7 +756,7 @@ namespace PluginHost {
                     return (result);
                 }
                 Core::hresult Metadata(string& info /* @out */) const {
-                    Core::hresult result;
+                    Core::hresult result = Core::ERROR_UNAVAILABLE;
                     const PluginHost::IShell* source = Source();
                     if (source != nullptr) {
                         result = source->Metadata(info);

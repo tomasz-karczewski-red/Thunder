@@ -779,13 +779,13 @@ namespace Plugin {
         if (callsign.empty() || (callsign == PluginHost::JSONRPC::Callsign())) {
             result = PluginHost::JSONRPC::Invoke(channelId, id, token, method, parameters, response);
         } 
-	else {
+        else {
             Core::ProxyType<PluginHost::IShell> service;
-	    
+
             result = _pluginServer->Services().FromIdentifier(callsign, service);
 
             if (result == Core::ERROR_NONE) {
-	        ASSERT(service.IsValid());
+                ASSERT(service.IsValid());
                 PluginHost::IShell::state currrentState = service->State();
                 if (currrentState != PluginHost::IShell::state::ACTIVATED)
                 {
@@ -853,7 +853,7 @@ namespace Plugin {
         ASSERT(_pluginServer != nullptr);
 
         if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
+            Core::ProxyType<PluginHost::IShell> service;
 
             if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
@@ -881,7 +881,7 @@ namespace Plugin {
         ASSERT(_pluginServer != nullptr);
 
         if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
+            Core::ProxyType<PluginHost::IShell> service;
 
             if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
@@ -909,7 +909,7 @@ namespace Plugin {
         ASSERT(_pluginServer != nullptr);
 
         if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
+            Core::ProxyType<PluginHost::IShell> service;
 
             if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
@@ -936,15 +936,18 @@ namespace Plugin {
         ASSERT(_pluginServer != nullptr);
 
         if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
+            Core::ProxyType<PluginHost::IShell> service;
 
             if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
-                result = service->Suspend(PluginHost::IShell::REQUESTED);
+                PluginHost::IStateControl* stateControl = service->QueryInterface<PluginHost::IStateControl>();
 
-                // Normalise return code
-                if ((result != Core::ERROR_NONE) && (result != Core::ERROR_ILLEGAL_STATE) && (result !=  Core::ERROR_INPROGRESS)) {
-                    result = Core::ERROR_CLOSING_FAILED;
+                if (stateControl == nullptr) {
+                    result = Core::ERROR_UNAVAILABLE;
+                }
+                else {
+                    result = stateControl->Request(PluginHost::IStateControl::command::SUSPEND);
+                    stateControl->Release();
                 }
             }
             else {
@@ -964,42 +967,18 @@ namespace Plugin {
         ASSERT(_pluginServer != nullptr);
 
         if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
+            Core::ProxyType<PluginHost::IShell> service;
 
             if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
-                result = service->Resume(PluginHost::IShell::REQUESTED);
+                PluginHost::IStateControl* stateControl = service->QueryInterface<PluginHost::IStateControl>();
 
-                // Normalise return code
-                if ((result != Core::ERROR_NONE) && (result != Core::ERROR_ILLEGAL_STATE) && (result !=  Core::ERROR_INPROGRESS) && (result != Core::ERROR_PENDING_CONDITIONS)) {
-                    result = Core::ERROR_OPENING_FAILED;
+                if (stateControl == nullptr) {
+                    result = Core::ERROR_UNAVAILABLE;
                 }
-            }
-            else {
-                result = Core::ERROR_UNKNOWN_KEY;
-            }
-        }
-        else {
-            result = Core::ERROR_PRIVILIGED_REQUEST;
-        }
-
-        return result;
-    }
-    uint32_t Controller::Resume(const string& callsign)
-    {
-        uint32_t result = Core::ERROR_NONE;
-        ASSERT(_pluginServer != nullptr);
-
-        if (callsign != Callsign()) {
-            Core::ProxyType<PluginHost::Server::Service> service;
-
-            if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
-                ASSERT(service.IsValid());
-                result = service->Resume(PluginHost::IShell::REQUESTED);
-
-                // Normalise return code
-                if ((result != Core::ERROR_NONE) && (result != Core::ERROR_ILLEGAL_STATE) && (result !=  Core::ERROR_INPROGRESS) && (result != Core::ERROR_PENDING_CONDITIONS)) {
-                    result = Core::ERROR_OPENING_FAILED;
+                else {
+                    result = stateControl->Request(PluginHost::IStateControl::command::RESUME);
+                    stateControl->Release();
                 }
             }
             else {
@@ -1055,7 +1034,7 @@ namespace Plugin {
         uint32_t result = Core::ERROR_UNKNOWN_KEY;
 
         Core::JSON::ArrayType<PluginHost::MetaData::Service> jsonResponse;
-        Core::ProxyType<PluginHost::Server::Service> service;
+        Core::ProxyType<PluginHost::IShell> service;
 
         ASSERT(_pluginServer != nullptr);
 
@@ -1066,13 +1045,15 @@ namespace Plugin {
         else {
             if (_pluginServer->Services().FromIdentifier(index, service) == Core::ERROR_NONE) {
                 ASSERT(service.IsValid());
+                string info;
+                result = Core::ERROR_BAD_REQUEST;
 
-                PluginHost::MetaData::Service status;
-                service->GetMetaData(status);
-
-                jsonResponse.Add(status);
-
-                result = Core::ERROR_NONE;
+                if (service->Metadata(info) == Core::ERROR_NONE) {
+                    PluginHost::MetaData::Service status;
+                    status.FromString(info);
+                    jsonResponse.Add(status);
+                    result = Core::ERROR_NONE;
+                }
             }
         }
         jsonResponse.ToString(response);
