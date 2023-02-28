@@ -19,7 +19,15 @@
 
 #include "Controller.h"
 #include "SystemInfo.h"
-#include "JControllerExt.h"
+
+#include "JsonData_IControllerSystemManagement.h"
+#include "JsonData_IControllerLifeTime.h"
+#include "JsonData_IControllerSystemInfo.h"
+
+#include "JIControllerSystemManagement.h"
+#include "JIControllerLifeTime.h"
+#include "JIControllerMetaData.h"
+#include "JIControllerSystemInfo.h"
 
 namespace WPEFramework {
 
@@ -116,7 +124,10 @@ namespace Plugin {
         _service->EnableWebServer(_T("UI"), EMPTY_STRING);
 
         Register(this);
-        Exchange::JControllerExt::Register(*this, this);
+        Exchange::IController::JSystemManagement::Register(*this, this);
+        Exchange::IController::JLifeTime::Register(*this, this);
+        Exchange::IController::JMetaData::Register(*this, this);
+        Exchange::IController::JSystemInfo::Register(*this, this);
 
         // On succes return a name as a Callsign to be used in the URL, after the "service"prefix
         return (_T(""));
@@ -126,7 +137,10 @@ namespace Plugin {
     {
         ASSERT(_service == service);
 
-        Exchange::JControllerExt::Unregister(*this);
+        Exchange::IController::JSystemManagement::Unregister(*this);
+        Exchange::IController::JLifeTime::Unregister(*this);
+        Exchange::IController::JMetaData::Unregister(*this);
+        Exchange::IController::JSystemInfo::Unregister(*this);
 
         // Detach the SubSystems, we are shutting down..
         PluginHost::ISubSystem* subSystems(_service->SubSystems());
@@ -206,11 +220,11 @@ namespace Plugin {
         return (result);
     }
 
-    Core::hresult Controller::Persist()
+    uint32_t Controller::Persist()
     {
         ASSERT(_pluginServer != nullptr);
 
-        Core::hresult result = _pluginServer->Persist();
+        uint32_t result = _pluginServer->Persist();
 
         // Normalise return code
         if (result != Core::ERROR_NONE) {
@@ -221,9 +235,9 @@ namespace Plugin {
 
     }
 
-    Core::hresult Controller::Delete(const string& path)
+    uint32_t Controller::Delete(const string& path)
     {
-        Core::hresult result = Core::ERROR_UNKNOWN_KEY;
+        uint32_t result = Core::ERROR_UNKNOWN_KEY;
         bool valid;
         string normalized_path = Core::File::Normalize(path, valid);
 
@@ -249,9 +263,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Reboot()
+    uint32_t Controller::Reboot()
     {
-        Core::hresult result =  Core::System::Reboot();
+        uint32_t result =  Core::System::Reboot();
 
         if ((result != Core::ERROR_NONE) && (result != Core::ERROR_UNAVAILABLE) && (result != Core::ERROR_PRIVILIGED_REQUEST) && (result != Core::ERROR_GENERAL)) {
             result = Core::ERROR_GENERAL;
@@ -260,9 +274,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Environment(const string& index, string& environment) const
+    uint32_t Controller::Environment(const string& index, string& environment) const
     {
-        Core::hresult result = Core::ERROR_UNKNOWN_KEY;
+        uint32_t result = Core::ERROR_UNKNOWN_KEY;
 
         if (Core::SystemInfo::GetEnvironment(index, environment) == true) {
             result = Core::ERROR_NONE;
@@ -271,9 +285,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Configuration(const string& callsign, string& configuration) const
+    uint32_t Controller::Configuration(const string& callsign, string& configuration) const
     {
-        Core::hresult result = Core::ERROR_UNKNOWN_KEY;
+        uint32_t result = Core::ERROR_UNKNOWN_KEY;
         Core::ProxyType<PluginHost::IShell> service;
 
         ASSERT(_pluginServer != nullptr);
@@ -286,9 +300,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Configuration(const string& callsign, const string& configuration)
+    uint32_t Controller::Configuration(const string& callsign, const string& configuration)
     {
-        Core::hresult result = Core::ERROR_UNKNOWN_KEY;
+        uint32_t result = Core::ERROR_UNKNOWN_KEY;
         Core::ProxyType<PluginHost::IShell> service;
 
         ASSERT(_pluginServer != nullptr);
@@ -305,9 +319,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Clone(const string& basecallsign, const string& newcallsign)
+    uint32_t Controller::Clone(const string& basecallsign, const string& newcallsign)
     {
-        Core::hresult result = Core::ERROR_NONE;
+        uint32_t result = Core::ERROR_NONE;
         const string controllerName = _pluginServer->Controller()->Callsign();
 
         ASSERT(_pluginServer != nullptr);
@@ -332,9 +346,9 @@ namespace Plugin {
         return result;
     }
 
-    Core::hresult Controller::Hibernate(const string& callsign, const uint32_t timeout)
+    uint32_t Controller::Hibernate(const string& callsign, const uint32_t timeout)
     {
-        Core::hresult result = Core::ERROR_BAD_REQUEST;
+        uint32_t result = Core::ERROR_BAD_REQUEST;
         const string controllerName = _pluginServer->Controller()->Callsign();
 
         if ((callsign.empty() == false) && (callsign != controllerName)) {
@@ -813,7 +827,7 @@ namespace Plugin {
         return (result);
     }
 
-    uint32_t Controller::Register(Exchange::IControllerExt::INotification* notification)
+    uint32_t Controller::Register(Exchange::IController::ILifeTime::INotification* notification)
     {
         _adminLock.Lock();
 
@@ -828,11 +842,11 @@ namespace Plugin {
         return (Core::ERROR_NONE);
     }
 
-    uint32_t Controller::Unregister(Exchange::IControllerExt::INotification* notification)
+    uint32_t Controller::Unregister(Exchange::IController::ILifeTime::INotification* notification)
     {
         _adminLock.Lock();
 
-        std::list<Exchange::IControllerExt::INotification*>::iterator index(std::find(_observers.begin(), _observers.end(), notification));
+        std::list<Exchange::IController::ILifeTime::INotification*>::iterator index(std::find(_observers.begin(), _observers.end(), notification));
 
         // Make sure you do not unregister something you did not register !!!
         ASSERT(index != _observers.end());
@@ -992,7 +1006,6 @@ namespace Plugin {
         return result;
     }
 
-
     uint32_t Controller::Clone(const string& callsign, const string& newcallsign, string& response)
     {
         uint32_t result = Clone(callsign, newcallsign);
@@ -1007,7 +1020,7 @@ namespace Plugin {
         return (Reboot());
     }
 
-    uint32_t Controller::StoreConfig()
+    uint32_t Controller::Storeconfig()
     {
         return Persist();
     }
@@ -1147,33 +1160,16 @@ ASSERT(_service != nullptr);
         return Core::ERROR_NONE;
     }
 
-#if 0
-    uint32_t Controller::Environment(const string& index, string& environment) const
-    {
-        uint32_t result = Core::ERROR_NONE;
-        return result;
-    }
-    uint32_t Controller::Configuration(const string& callsign, string& configuration) const
-    {
-        uint32_t result = Core::ERROR_NONE;
-        return result;
-    }
-    uint32_t Controller::Configuration(const string& callsign, const string& configuration)
-    {
-        uint32_t result = Core::ERROR_NONE;
-        return result;
-    }
-#endif
     void Controller::StateChange(const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason)
     {
-        Exchange::JControllerExt::Event::StateChange(*this, callsign, state, reason);
+        Exchange::IController::JLifeTime::Event::StateChange(*this, callsign, state, reason);
     }
 
     void Controller::NotifyStateChange(const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason)
     {
         _adminLock.Lock();
 
-        std::list<Exchange::IControllerExt::INotification*>::const_iterator index = _observers.begin();
+        std::list<Exchange::IController::ILifeTime::INotification*>::const_iterator index = _observers.begin();
 
         while(index != _observers.end()) {
             (*index)->StateChange(callsign, state, reason);
