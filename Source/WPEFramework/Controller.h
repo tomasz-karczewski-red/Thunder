@@ -32,9 +32,10 @@ namespace Plugin {
         : public PluginHost::IPlugin
         , public PluginHost::IWeb
         , public PluginHost::JSONRPC
+        , public Exchange::IController::IConfiguration
+        , public Exchange::IController::IDiscovery
         , public Exchange::IController::ISystemManagement
-        , public Exchange::IController::ISystemInfo
-        , public Exchange::IController::IMetaData
+        , public Exchange::IController::IMetadata
         , public Exchange::IController::ILifeTime
         , public Exchange::IController::ILifeTime::INotification {
     public:
@@ -419,9 +420,10 @@ namespace Plugin {
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IWeb)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
+        INTERFACE_ENTRY(Exchange::IController::IConfiguration)
+        INTERFACE_ENTRY(Exchange::IController::IDiscovery)
         INTERFACE_ENTRY(Exchange::IController::ISystemManagement)
-        INTERFACE_ENTRY(Exchange::IController::ISystemInfo)
-        INTERFACE_ENTRY(Exchange::IController::IMetaData)
+        INTERFACE_ENTRY(Exchange::IController::IMetadata)
         INTERFACE_ENTRY(Exchange::IController::ILifeTime)
         INTERFACE_ENTRY(Exchange::IController::ILifeTime::INotification)
         END_INTERFACE_MAP

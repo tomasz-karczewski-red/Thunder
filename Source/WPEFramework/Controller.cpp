@@ -20,14 +20,16 @@
 #include "Controller.h"
 #include "SystemInfo.h"
 
-#include "JsonData_IControllerSystemManagement.h"
-#include "JsonData_IControllerLifeTime.h"
-#include "JsonData_IControllerSystemInfo.h"
+#include "JsonData_SystemManagement.h"
+#include "JsonData_LifeTime.h"
+#include "JsonData_Discovery.h"
+#include "JsonData_Configuration.h"
 
-#include "JIControllerSystemManagement.h"
-#include "JIControllerLifeTime.h"
-#include "JIControllerMetaData.h"
-#include "JIControllerSystemInfo.h"
+#include "JDiscovery.h"
+#include "JConfiguration.h"
+#include "JSystemManagement.h"
+#include "JLifeTime.h"
+#include "JMetadata.h"
 
 namespace WPEFramework {
 
@@ -124,10 +126,11 @@ namespace Plugin {
         _service->EnableWebServer(_T("UI"), EMPTY_STRING);
 
         Register(this);
+        Exchange::IController::JConfiguration::Register(*this, this);
+        Exchange::IController::JDiscovery::Register(*this, this);
         Exchange::IController::JSystemManagement::Register(*this, this);
         Exchange::IController::JLifeTime::Register(*this, this);
-        Exchange::IController::JMetaData::Register(*this, this);
-        Exchange::IController::JSystemInfo::Register(*this, this);
+        Exchange::IController::JMetadata::Register(*this, this);
 
         // On succes return a name as a Callsign to be used in the URL, after the "service"prefix
         return (_T(""));
@@ -137,10 +140,11 @@ namespace Plugin {
     {
         ASSERT(_service == service);
 
+        Exchange::IController::JConfiguration::Unregister(*this);
+        Exchange::IController::JDiscovery::Unregister(*this);
         Exchange::IController::JSystemManagement::Unregister(*this);
         Exchange::IController::JLifeTime::Unregister(*this);
-        Exchange::IController::JMetaData::Unregister(*this);
-        Exchange::IController::JSystemInfo::Unregister(*this);
+        Exchange::IController::JMetadata::Unregister(*this);
 
         // Detach the SubSystems, we are shutting down..
         PluginHost::ISubSystem* subSystems(_service->SubSystems());
@@ -276,6 +280,7 @@ namespace Plugin {
 
     uint32_t Controller::Environment(const string& index, string& environment) const
     {
+        printf("%s:%s:%d Calling\n", __FILE__, __func__, __LINE__);
         uint32_t result = Core::ERROR_UNKNOWN_KEY;
 
         if (Core::SystemInfo::GetEnvironment(index, environment) == true) {
@@ -287,6 +292,7 @@ namespace Plugin {
 
     uint32_t Controller::Configuration(const string& callsign, string& configuration) const
     {
+        printf("%s:%s:%d Calling\n", __FILE__, __func__, __LINE__);
         uint32_t result = Core::ERROR_UNKNOWN_KEY;
         Core::ProxyType<PluginHost::IShell> service;
 
@@ -302,12 +308,14 @@ namespace Plugin {
 
     uint32_t Controller::Configuration(const string& callsign, const string& configuration)
     {
+        printf("%s:%s:%d Calling configuration = %s\n", __FILE__, __func__, __LINE__, configuration.c_str());
         uint32_t result = Core::ERROR_UNKNOWN_KEY;
         Core::ProxyType<PluginHost::IShell> service;
 
         ASSERT(_pluginServer != nullptr);
 
         if (_pluginServer->Services().FromIdentifier(callsign, service) == Core::ERROR_NONE) {
+        printf("%s:%s:%d Calling\n", __FILE__, __func__, __LINE__);
             result = service->ConfigLine(configuration);
 
             // Normalise return code
@@ -350,6 +358,7 @@ namespace Plugin {
     {
         uint32_t result = Core::ERROR_BAD_REQUEST;
         const string controllerName = _pluginServer->Controller()->Callsign();
+        printf("%s:%s:%d Calling\n", __FILE__, __func__, __LINE__);
 
         if ((callsign.empty() == false) && (callsign != controllerName)) {
             Core::ProxyType<PluginHost::IShell> service;
@@ -358,6 +367,7 @@ namespace Plugin {
                 result = Core::ERROR_UNKNOWN_KEY;
             }
             else {
+                printf("%s:%s:%d Calling\n", __FILE__, __func__, __LINE__);
                 result = service->Hibernate(timeout);
             }
         }
