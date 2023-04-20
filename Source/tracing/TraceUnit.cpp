@@ -307,16 +307,19 @@ namespace Trace {
         UpdateEnabledCategories(serialized);
     }
 
-    void TraceUnit::Defaults(Core::File& file) {
+    bool TraceUnit::Defaults(Core::File& file) {
+        bool parsed = false;
         Core::JSON::ArrayType<Setting::JSON> serialized;
         Core::OptionalType<Core::JSON::Error> error;
         serialized.IElement::FromFile(file, error);
         if (error.IsSet() == true) {
             SYSLOG(WPEFramework::Logging::ParsingError, (_T("Parsing failed with %s"), ErrorDisplayMessage(error.Value()).c_str()));
+        } else {
+            parsed = true;
+            // Deal with existing categories that might need to be enable/disabled.
+            UpdateEnabledCategories(serialized);
         }
-
-        // Deal with existing categories that might need to be enable/disabled.
-        UpdateEnabledCategories(serialized);
+        return parsed;
     }
 
     void TraceUnit::UpdateEnabledCategories(const Core::JSON::ArrayType<Setting::JSON>& info)

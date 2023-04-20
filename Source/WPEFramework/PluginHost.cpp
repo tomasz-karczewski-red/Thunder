@@ -392,6 +392,17 @@ POP_WARNING()
         ExitHandler::Destruct();
     }
 
+    static bool loadTraceSettingsFromFile(const string & fileLocation) {
+        bool loaded = false;
+        Core::File input(fileLocation);
+        if (input.Open(true)) {
+            loaded = input.Size() > 0 && Trace::TraceUnit::Instance().Defaults(input);
+            TRACE_FORMATTING("Load tracing configuration from: %s size: %llu result: %d\n", fileLocation.c_str(), input.Size(), loaded);
+            input.Close();
+        }
+        return loaded;
+    }
+
 #ifdef __WINDOWS__
     int _tmain(int argc, _TCHAR* argv[])
 #else
@@ -547,17 +558,14 @@ POP_WARNING()
             }
             
             if (_config->MessagingCategoriesFile()) {
-
                 messagingSettings = Core::Directory::Normalize(Core::File::PathName(options.configFile)) + _config->MessagingCategories();
-
-                Core::File input (messagingSettings);
-
-                if (input.Open(true)) {
-#if defined(__CORE_MESSAGING__)
-                    Core::Messaging::MessageUnit::Instance().Configure(input);
-#else
-                    Trace::TraceUnit::Instance().Defaults(input);
-#endif
+                if (!loadTraceSettingsFromFile(messagingSettings)) {
+                    // fallback to default
+                    messagingSettings = Core::Directory::Normalize(Core::File::PathName(options.configFile)) + "logCfgDefault.json";
+                    TRACE_FORMATTING("Tracing configuration not provided or invalid, use default fallback: %s\n", messagingSettings.c_str());
+                    if (!loadTraceSettingsFromFile(messagingSettings)) {
+                        TRACE_FORMATTING("Could not open fallback logging configuration: %s\n", messagingSettings.c_str());
+                    }
                 }
             }
 

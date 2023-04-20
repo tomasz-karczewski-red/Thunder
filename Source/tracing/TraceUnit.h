@@ -206,7 +206,7 @@ namespace Trace {
         bool IsDefaultCategory(const string& module, const string& category, bool& enabled) const;
         string Defaults() const;
         void Defaults(const string& jsonCategories);
-        void Defaults(Core::File& file);
+        bool Defaults(Core::File& file);
 
         void Trace(const char fileName[], const uint32_t lineNumber, const char className[], const ITrace* const information);
 
