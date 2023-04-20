@@ -145,6 +145,7 @@ set(PUBLIC_HEADERS
         TokenizedStringList.h
         MessageDispatcher.h
         MessageUnit.h
+        SyslogToJournal.h
         )
 
 # non-buildable interface target to carry the definitions

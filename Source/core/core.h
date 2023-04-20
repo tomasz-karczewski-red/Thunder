@@ -115,6 +115,7 @@
 #include "TokenizedStringList.h"
 #include "MessageDispatcher.h"
 #include "MessageUnit.h"
+#include "SyslogToJournal.h"
 
 #ifdef __WINDOWS__
 #pragma comment(lib, "core.lib")
