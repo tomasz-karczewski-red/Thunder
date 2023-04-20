@@ -53,6 +53,8 @@ namespace PluginHost {
             //! on this state change.
             //! @}
             virtual void Activated(const string& callsign, IShell* plugin) = 0;
+            virtual void Activation(const string& callsign, IShell* plugin) = 0;
+            virtual void Deactivation(const string& callsign, IShell* plugin) = 0;
             virtual void Deactivated(const string& callsign, IShell* plugin) = 0;
             virtual void Unavailable(const string& callsign, IShell* plugin) = 0;
 

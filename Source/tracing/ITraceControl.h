@@ -29,7 +29,7 @@ namespace WPEFramework {
 namespace Trace {
     const uint16_t TRACINGBUFFERSIZE = 1024;
 
-    struct ITraceControl {
+    struct EXTERNAL ITraceControl {
         virtual ~ITraceControl() = default;
         virtual void Destroy() = 0;
         virtual const char* Category() const = 0;

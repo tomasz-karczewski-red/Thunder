@@ -130,7 +130,11 @@ namespace PluginHost {
             {
                 Run();
             }
-            ~WorkerPoolImplementation() override = default;
+            ~WorkerPoolImplementation() override {
+                // Disable the queue so the minions can stop, even if they are processing and waiting for work..
+                Stop();
+                WaitIfJoined();
+            }
 
         private:
             Dispatcher _dispatch;
@@ -2044,6 +2048,17 @@ POP_WARNING()
 
                 _notificationLock.Unlock();
             }
+            void Activation(const string& callsign, PluginHost::IShell* entry)
+            {
+                _notificationLock.Lock();
+                std::list<PluginHost::IPlugin::INotification*> currentlist(_notifiers);
+                while (currentlist.size()) {
+                    currentlist.front()->Activation(callsign, entry);
+                    currentlist.pop_front();
+                }
+                _notificationLock.Unlock();
+            }
+
             void Activated(const string& callsign, PluginHost::IShell* entry)
             {
                 _notificationLock.Lock();
@@ -2058,6 +2073,16 @@ POP_WARNING()
                 _notificationLock.Unlock();
             }
 
+            void Deactivation(const string& callsign, PluginHost::IShell* entry)
+            {
+                _notificationLock.Lock();
+                std::list<PluginHost::IPlugin::INotification*> currentlist(_notifiers);
+                while (currentlist.size()) {
+                    currentlist.front()->Deactivation(callsign, entry);
+                    currentlist.pop_front();
+                }
+                _notificationLock.Unlock();
+            }
             void Deactivated(const string& callsign, PluginHost::IShell* entry)
             {
                 _notificationLock.Lock();

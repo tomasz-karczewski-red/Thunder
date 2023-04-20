@@ -7,6 +7,12 @@
 #include <client/linux/handler/exception_handler.h>
 #endif
 
+#ifdef HAVE_LIBODHERR_ODHERR_H
+#include <rdk/libodherr/odherr.hpp>
+#else
+#define ODH_ERROR_REPORT_DEINIT()
+#endif
+
 MODULE_NAME_DECLARATION(BUILD_REFERENCE)
 
 namespace WPEFramework {
@@ -71,8 +77,6 @@ POP_WARNING()
 
         public:
             void Dispatch() {
-                Core::ServiceAdministrator::Instance().FlushLibraries();
-
                 uint32_t instances = Core::ServiceAdministrator::Instance().Instances();
 
                 if (instances != 0) {
@@ -403,20 +407,25 @@ public:
         , _engine()
         , _proxyStubs()
         , _factories()
+        , terminationThreadId(0)
     {
         _instance = this;
 
         TRACE_L1("Spawning a new process: %d.", Core::ProcessInfo().Id());
         #ifndef __WINDOWS__
-        struct sigaction sa;
-        memset(&sa, 0, sizeof(struct sigaction));
-        sigemptyset(&sa.sa_mask);
-        sa.sa_handler = ExitDaemonHandler;
-        sa.sa_flags = 0; // not SA_RESTART!;
-
-        sigaction(SIGINT, &sa, nullptr);
-        sigaction(SIGTERM, &sa, nullptr);
-        sigaction(SIGQUIT, &sa, nullptr);
+        sigset_t signals;
+        sigemptyset(&signals);
+        sigaddset(&signals, SIGINT);
+        sigaddset(&signals, SIGTERM);
+        sigaddset(&signals, SIGQUIT);
+        pthread_sigmask(SIG_BLOCK, &signals, 0);
+        TRACE_L1("Starting termination thread");
+        if (pthread_create(&terminationThreadId, NULL, TerminationThread, NULL) != 0) {
+            TRACE_L1("Cannot create thread");
+            exit(0);
+        } else {
+            TRACE_L1("Termination thread created");
+        }
         #endif
         std::set_terminate(UncaughtExceptions);
     }
@@ -442,6 +451,17 @@ public:
 
             _server.Release();
         }
+
+        #ifndef __WINDOWS__
+        uint32_t instances = Core::ServiceAdministrator::Instance().Instances();
+        if (instances > 0) {
+            TRACE_L1("Abnormal process termination with %d instances just self killing", instances);
+            kill(getpid(), SIGKILL);
+            sleep(10);
+        }
+        #endif
+        if (pthread_join(terminationThreadId, NULL))
+            TRACE_L1("Failed to join TerminationThread");
 
         // We are going to tear down the stugg. Unregistere the Worker Pool
         Core::IWorkerPool::Assign(nullptr);
@@ -510,21 +530,24 @@ public:
 
 private:
     #ifndef __WINDOWS__
-    static void ExitDaemonHandler(int signo)
+    static void *TerminationThread(void* data)
     {
-        TRACE_L1("Signal received %d.", signo);
-        syslog(LOG_NOTICE, "Signal received %d.", signo);
-
-        if ((signo == SIGTERM) || (signo == SIGQUIT)) {
-
+        sigset_t signals;
+        sigemptyset(&signals);
+        sigaddset(&signals, SIGINT);
+        sigaddset(&signals, SIGTERM);
+        sigaddset(&signals, SIGQUIT);
+        int signal;
+        TRACE_L1("TerminationThread: waiting for signals");
+        int error = sigwait(&signals, &signal);
+        if (error) {
+            TRACE_L1("TerminationThread: error on sigwait");
+        } else {
+            TRACE_L1("TerminationThread: signal received: %d", signal);
             ProcessFlow::Abort();
-
-        } else if (signo == SIGSEGV) {
-            Logging::DumpException(_T("SEIGSEGV"));
-            // now invoke the default segfault handler
-            signal(signo, SIG_DFL);
-            kill(getpid(), signo);
+            TRACE_L1("TerminationThread: abort done");
         }
+        return NULL;
     }
     #endif
 
@@ -533,6 +556,7 @@ private:
     Core::ProxyType<WorkerPoolImplementation> _engine;
     std::list<Core::Library> _proxyStubs;
     FactoriesImplementation _factories;
+    pthread_t terminationThreadId;
 
     static Core::CriticalSection _lock;
     static ProcessFlow* _instance;
@@ -678,7 +702,7 @@ int main(int argc, char** argv)
         Core::Messaging::MessageUnit::Instance().Close();
 #endif
     }
-
+    ODH_ERROR_REPORT_DEINIT();
     TRACE_L1("End of Process!!!!");
     return 0;
 }

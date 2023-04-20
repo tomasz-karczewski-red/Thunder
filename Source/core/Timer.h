@@ -360,7 +360,8 @@ namespace Core {
                 _adminLock.Lock();
 
                 if ((_executing != nullptr) && (reschedule != 0)) {
-                    ASSERT(reschedule > now);
+                    // it might happen that TimedInfo entry under info will get expired when reaching here to Process() method, or time might be shifted during the timeout (for example bootup time aquisition). We cannot assert on below condition then.
+                   //ASSERT(reschedule > now);
 
                     info.ScheduleTime(reschedule);
                     ScheduleEntry(std::move(info));

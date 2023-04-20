@@ -614,6 +614,15 @@ namespace Plugin {
         return (result);
     }
 
+    void Controller::Activation(const string& callsign, PluginHost::IShell* plugin)
+    {
+        event_statechange(callsign, PluginHost::IShell::ACTIVATION, plugin->Reason());
+    }
+    void Controller::Deactivation(const string& callsign, PluginHost::IShell* plugin)
+    {
+        event_statechange(callsign, PluginHost::IShell::DEACTIVATION, plugin->Reason());
+    }
+
     void Controller::Activated(const string& callsign, PluginHost::IShell* plugin)
     {
         event_statechange(callsign, PluginHost::IShell::ACTIVATED, plugin->Reason());

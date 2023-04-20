@@ -264,6 +264,8 @@ POP_WARNING()
     void EXTERNAL ToString(const uint8_t object[], const uint16_t length, const bool padding, string& result);
 
     uint16_t EXTERNAL FromString(const string& newValue, uint8_t object[], uint16_t& length, const TCHAR* ignoreList = nullptr);
+    string EXTERNAL ToQuotedString(const TCHAR quote, const string& input);
+
 
     //------------------------------------------------------------------------
     // Codepoint: Operations to extract and convert code points.

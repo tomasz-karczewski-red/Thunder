@@ -52,7 +52,10 @@ namespace Core {
             }
             virtual ~Serializer()
             {
-                ASSERT(_current == nullptr);
+                if (_current != nullptr) {
+                    TRACE_L1("ARRISEOS-42502 Serializer::~Serializer _current != nullptr");
+                }
+                // ASSERT(_current == nullptr);
             }
 
         public:

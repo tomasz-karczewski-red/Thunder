@@ -136,3 +136,6 @@ install(
 )
 
 InstallCMakeConfig(TARGETS ${TARGET})
+InstallPackageConfig(
+               TARGETS ${TARGET}
+              DESCRIPTION "Enable ease of development for COM support." )

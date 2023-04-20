@@ -29,6 +29,7 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <net/if.h>
+#include <grp.h>
 #define __ERRORRESULT__ errno
 #define __ERROR_AGAIN__ EAGAIN
 #define __ERROR_WOULDBLOCK__ EWOULDBLOCK
@@ -703,6 +704,29 @@ namespace WPEFramework {
             }
         }
 
+#ifndef __WINDOWS__
+        static void SetGroupAndReadWriteUserAndGroupAccess(const char *fileName, const char * groupName)
+        {
+            TRACE_L1("Setup group: %s and permissions for socket: %s", groupName, fileName);
+            struct group group, *grpptr;
+            size_t size = sysconf(_SC_GETGR_R_SIZE_MAX);
+            char buf[size];
+            int result = getgrnam_r(groupName, &group, buf, size, &grpptr);
+            if (result == 0 && grpptr != NULL) {
+                TRACE_L1("Group id: %d for group: %s", group.gr_gid, groupName);
+                if (chown(fileName, (uid_t)-1, group.gr_gid) != 0) {
+                    TRACE_L1("chown failed: %d", errno);
+                }
+                if (chmod(fileName, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) != 0) {
+                    TRACE_L1("chmod failed: %d", errno);
+                }
+            }
+            else {
+                TRACE_L1("Failed to get group id: %s result: %d errno: %d", groupName, result, errno);
+            }
+        }
+#endif
+
         SOCKET SocketPort::ConstructSocket(NodeId& localNode, const string& specificInterface)
         {
             ASSERT(localNode.IsValid() == true);
@@ -847,6 +871,12 @@ namespace WPEFramework {
 #endif
                         {
                             BufferAlignment(l_Result);
+#ifndef __WINDOWS__
+                            string socketGroupEnv;
+                            if ((localNode.Type() == NodeId::TYPE_DOMAIN) && Core::SystemInfo::GetEnvironment("THUNDER_DEFAULT_SOCKET_GROUP", socketGroupEnv)) {
+                                SetGroupAndReadWriteUserAndGroupAccess(localNode.HostName().c_str(), socketGroupEnv.c_str());
+                            }
+#endif
                             return (l_Result);
                         }
                     }

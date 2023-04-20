@@ -126,6 +126,10 @@ namespace PluginHost {
             END_INTERFACE_MAP
 
         private:
+            void Activation(const string& name, PluginHost::IShell* plugin) override
+            {
+            }
+
             void Activated(const string& name, PluginHost::IShell* plugin) override
             {
                 if (_callsign == name) {
@@ -151,6 +155,11 @@ namespace PluginHost {
                     _adminLock.Unlock();
                 }
             }
+
+            void Deactivation(const string& name, PluginHost::IShell* plugin) override
+            {
+            }
+
             void Deactivated(const string& name, PluginHost::IShell* plugin) override
             {
                 if (_callsign == name) {

@@ -1623,7 +1623,8 @@ namespace Core {
             inline const string Value() const
             {
                 if ((_flagsAndCounters & (SetBit | QuoteFoundBit | QuotedSerializeBit)) == (SetBit | QuoteFoundBit)) {
-                    return ('\"' + Core::ToString(_value.c_str()) + '\"');
+                    return (Core::ToQuotedString('\"', _value));
+
                 }
                 return (((_flagsAndCounters & (SetBit | NullBit)) == SetBit) ? Core::ToString(_value.c_str()) : Core::ToString(_default.c_str()));
             }
@@ -1847,7 +1848,7 @@ namespace Core {
                         else if ((_flagsAndCounters & 0x1F) == 0) {
                             // If we did not open an object, the only thing we allow are whitespaces as they can 
                             // always be dropped!
-                            finished = (((_flagsAndCounters & EscapeFoundBit) == 0) && ((current == ',') || (current == '}') || (current == ']')));
+                            finished = (((_flagsAndCounters & EscapeFoundBit) == 0) && ((current == ',') || (current == '}') || (current == ']')|| (current == '\0')));
                         }
                         else if (current == '}') {
                             if (OutScope(ScopeBracket::CURLY_BRACKET) == false) {
@@ -3696,7 +3697,6 @@ namespace Core {
                 return (loaded);
             }
 
-        protected:
             void Reset()
             {
                 _data.clear();

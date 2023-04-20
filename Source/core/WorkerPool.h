@@ -329,6 +329,16 @@ POP_WARNING()
             _threadPool.Stop();
             delete[] _metadata.Slot;
         }
+        /**
+         * @brief Stops until this object remains joined by call to WorkerPool::Join()
+         */
+        void WaitIfJoined() {
+            // TODO: 'Joining' to thread with id stored in _joined wasn't working too well. Using 'sleep' instead.
+            while (_joined) {
+                TRACE_L1("WorkerPool::WaitIfJoined() sleep");
+                SleepMs(10);
+            }
+        }
 
     public:
         void Submit(const Core::ProxyType<IDispatch>& job) override

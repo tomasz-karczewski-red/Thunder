@@ -60,12 +60,18 @@ if(BREAKPAD_FOUND)
     target_include_directories(${TARGET} PUBLIC ${BREAKPAD_INCLUDE_DIRS})
 endif(BREAKPAD_FOUND)
 
+find_path(LIBODHERR_INCLUDE_DIR "rdk/libodherr/odherr.h")
+if (LIBODHERR_INCLUDE_DIR)
+  message(STATUS "ODH Error reporting support enabled (path: ${LIBODHERR_INCLUDE_DIR})")
+  target_compile_definitions(${TARGET} PRIVATE -DHAVE_LIBODHERR_ODHERR_H -DODH_SOURCE_NAME="WPEProcess")
+  target_include_directories(${TARGET} PRIVATE ${LIBODHERR_INCLUDE_DIR})
+  target_link_libraries(${TARGET} PRIVATE odherr jansson)
+endif(LIBODHERR_INCLUDE_DIR)
+
 set_target_properties(${TARGET} PROPERTIES
         CXX_STANDARD 11
         CXX_STANDARD_REQUIRED YES
         FRAMEWORK FALSE
-        VERSION ${VERSION}
-        SOVERSION ${VERSION_MAJOR}
         )
 
 install(

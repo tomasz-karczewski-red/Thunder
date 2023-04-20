@@ -1328,13 +1328,14 @@ namespace Core {
                     const ObserverList& clients = index->second;
                     ObserverList::const_iterator loop = clients.begin();
 
+                    TRACE_L1("Number of clients: %d", clients.size());
                     result = Core::ERROR_NONE;
 
                     while (loop != clients.end()) {
                         const string& designator(loop->Designator());
 
                         if (!sendifmethod || sendifmethod(designator)) {
-
+                            TRACE_L1("designator: %s, event: %s, parameters: %s", designator.c_str(), event.c_str(), parameters.c_str());
                             _notificationFunction(loop->Id(), (designator.empty() == false ? designator + '.' + event : event), parameters);
                         }
 

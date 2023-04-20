@@ -22,6 +22,14 @@
 #include "Netlink.h"
 #include "Sync.h"
 
+#ifdef __WINDOWS__
+#include <Winsock2.h>
+#include <ws2tcpip.h>
+#define __ERRORRESULT__ ::WSAGetLastError()
+#else
+#define __ERRORRESULT__ errno
+#endif
+
 // #define DEBUG_FRAMES 1
 
 namespace WPEFramework {
@@ -231,6 +239,34 @@ namespace Core {
         _adminLock.Unlock();
 
         return (result);
+    }
+
+    // Called right after socket is created
+    /* virtual */ uint32_t SocketNetlink::Initialize()
+    {
+        if (!SocketDatagram::Initialize())
+            return false;
+
+        // For netlink sockets set decent sized kernel buffers, the default SocketPort code shrinks
+        // the kernel buffers to the same size as local buffers (for some reason), and this can
+        // cause ENOBUFS errors when reading the socket.
+        const SOCKET socket = Socket();
+        if (socket != INVALID_SOCKET)
+        {
+            int val = 80 * 1024;
+            if (::setsockopt(socket, SOL_SOCKET, SO_RCVBUF, &val, sizeof(int)) != 0)
+                TRACE_L1("Error setting SO_RCVBUF buffer size on netlink socket. Error %d", errno);
+
+           val = 80 * 1024;
+           if (::setsockopt(socket, SOL_SOCKET, SO_SNDBUF, &val, sizeof(int)) != 0)
+                TRACE_L1("Error setting SO_SNDBUF buffer size on netlink socket. Error %d", errno);
+
+            val = 1;
+            if (::setsockopt(socket, SOL_NETLINK, NETLINK_NO_ENOBUFS, &val, sizeof(int)) != 0)
+                TRACE_L1("Error setting NETLINK_NO_ENOBUFS flag on netlink socket. Error %d", errno);
+        }
+
+        return true;
     }
 
     // Signal a state change, Opened, Closed or Accepted

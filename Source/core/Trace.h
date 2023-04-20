@@ -73,7 +73,6 @@ namespace WPEFramework {
 
 #if defined(CORE_TRACE_NOT_ALLOWED) && !defined(__WINDOWS__) 
 #define TRACE_FORMATTING(fmt, ...)                                                                            \
-    _Pragma ("GCC warning \"Using 'TRACE_Lx' outside of Thunder Core is deprecated\"")                        \
     TRACE_FORMATTING_IMPL(fmt, ##__VA_ARGS__)
 #else
 #define TRACE_FORMATTING(fmt, ...)                                                                            \
@@ -133,7 +132,7 @@ namespace WPEFramework {
 #undef VERIFY
 #endif
 
-#ifdef __DEBUG__
+#if defined(__DEBUG__) || defined(__ENABLE_ASSERT__)
 
 #define ASSERT(expr)                                                                                            \
     do {                                                                                                        \

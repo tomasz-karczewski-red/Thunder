@@ -36,7 +36,7 @@ namespace RPC {
 #ifdef __DEBUG__
     enum { CommunicationTimeOut = Core::infinite }; // Time in ms. Forever
 #else
-    enum { CommunicationTimeOut = 3000 }; // Time in ms. 3 Seconds
+    enum { CommunicationTimeOut = 20000 }; // Time in ms. 20 Seconds
 #endif
     enum { CommunicationBufferSize = 8120 }; // 8K :-)
 
@@ -74,11 +74,9 @@ namespace RPC {
                 _referenceCount -= dropCount;
                 return(_referenceCount > 0);
             }
-#ifdef __DEBUG__
             bool Flushed() const {
                 return (_referenceCount == 0);
             }
-#endif
 
         private:
             uint32_t _interfaceId;

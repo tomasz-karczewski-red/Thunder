@@ -313,8 +313,12 @@ namespace Logging {
                 // if nessecary..
                 Trace::TraceUnit::Instance().Announce(*this);
 
-                // Logs, by default, are enabled.
-                m_Enabled |= 0x01;
+                bool enabled = false;
+                if (Trace::TraceUnit::Instance().IsDefaultCategory("SysLog", m_CategoryName, enabled)) {
+                    if (enabled) {
+                        m_Enabled = m_Enabled | 0x01;
+                    }
+                }
             }
             ~LoggingControl() override
             {

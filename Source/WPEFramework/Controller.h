@@ -141,6 +141,14 @@ namespace Plugin {
             {
                 _parent.Activated(callsign, plugin);
             }
+            void Activation(const string& callsign, PluginHost::IShell* plugin) override
+            {
+                _parent.Activation(callsign, plugin);
+            }
+            void Deactivation(const string& callsign, PluginHost::IShell* plugin) override
+            {
+                _parent.Deactivation(callsign, plugin);
+            }
             void Deactivated(const string& callsign, PluginHost::IShell* plugin) override
             {
                 _parent.Deactivated(callsign, plugin);
@@ -389,7 +397,9 @@ POP_WARNING()
         Core::ProxyType<Web::Response> GetMethod(Core::TextSegmentIterator& index) const;
         Core::ProxyType<Web::Response> PutMethod(Core::TextSegmentIterator& index, const Web::Request& request);
         Core::ProxyType<Web::Response> DeleteMethod(Core::TextSegmentIterator& index, const Web::Request& request);
+        void Activation(const string& callsign, PluginHost::IShell* plugin);
         void Activated(const string& callsign, PluginHost::IShell* plugin);
+        void Deactivation(const string& callsign, PluginHost::IShell* plugin);
         void Deactivated(const string& callsign, PluginHost::IShell* plugin);
         void Unavailable(const string& callsign, PluginHost::IShell* plugin);
 

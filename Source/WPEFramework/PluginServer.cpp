@@ -400,7 +400,7 @@ namespace PluginHost
             } else {
 
                 State(ACTIVATION);
-
+                _administrator.Activation(callSign, this);
                 Unlock();
 
                 // Before we dive into the "new" initialize lets see if this has a pending OOP running, if so forcefully kill it now, no time to wait !
@@ -533,6 +533,7 @@ namespace PluginHost
                 ASSERT(_handler != nullptr);
 
                 State(DEACTIVATION);
+                _administrator.Deactivation(callSign, this);
                 if( currentState == IShell::ACTIVATED ) {
                 _administrator.Deactivated(callSign, this);
                 }

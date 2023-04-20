@@ -39,7 +39,7 @@ namespace Core {
     };
 
     template <typename CONTAINER, typename ELEMENT, typename ITERATOR = typename CONTAINER::iterator>
-    class IteratorType : public IIterator {
+    class EXTERNAL IteratorType : public IIterator {
     public:
         IteratorType()
             : m_Container(nullptr)
