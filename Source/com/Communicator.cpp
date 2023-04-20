@@ -352,11 +352,10 @@ namespace RPC {
                             _process.Kill(true);
                             nextinterval = Communicator::HardKillCheckWaitTime();
                         } else {
-                            ASSERT(false);
-                            nextinterval = 0;
+                            nextinterval = 10;
                         }
                         break;
-                case 2: _container->Stop(0);
+                case 2: if(_process.Id() != 0) _container->Stop(0);
                         nextinterval = 5;
                         break;
                 default:
