@@ -410,15 +410,19 @@ namespace PluginHost
                 }
 
                 TRACE(Activity, (_T("Activation plugin [%s]:[%s]"), className.c_str(), callSign.c_str()));
+                bool activationBlocked = _administrator.IsPluginActivationBlocked();
+                if (!activationBlocked) {
+                    REPORT_DURATION_WARNING( { ErrorMessage(_handler->Initialize(this)); }, WarningReporting::TooLongPluginState, WarningReporting::TooLongPluginState::StateChange::ACTIVATION, callSign.c_str());
+                } else {
+                    TRACE_L1("Plugin activation is blocked");
+                }
 
                 _administrator.Initialize(callSign, this);
 
-                REPORT_DURATION_WARNING( { ErrorMessage(_handler->Initialize(this)); }, WarningReporting::TooLongPluginState, WarningReporting::TooLongPluginState::StateChange::ACTIVATION, callSign.c_str());
-
-                if (HasError() == true) {
+                if (HasError() == true || activationBlocked) {
                     result = Core::ERROR_GENERAL;
 
-                    SYSLOG(Logging::Startup, (_T("Activation of plugin [%s]:[%s], failed. Error [%s]"), className.c_str(), callSign.c_str(), ErrorMessage().c_str()));
+                    SYSLOG(Logging::Startup, (_T("Activation of plugin [%s]:[%s], failed. Error [%s] activationBlocked=%d"), className.c_str(), callSign.c_str(), ErrorMessage().c_str(), activationBlocked));
 
                     if( _administrator.Configuration().LegacyInitialize() == false ) {
                         Deactivate(reason::INITIALIZATION_FAILED);
@@ -961,6 +965,7 @@ POP_WARNING()
 
     void Server::Close()
     {
+        _services.BlockPluginActivation();
         Plugin::Controller* destructor(_controller->ClassType<Plugin::Controller>());
         destructor->AddRef();
         _connections.Close(100);

@@ -1982,6 +1982,7 @@ PUSH_WARNING(DISABLE_WARNING_THIS_IN_MEMBER_INITIALIZER_LIST)
                 , _server(server)
                 , _subSystems(this)
                 , _authenticationHandler(nullptr)
+                , _pluginActivationBlocked(false)
             {
             }
 POP_WARNING()
@@ -1992,6 +1993,16 @@ POP_WARNING()
             }
 
         public:
+
+            bool IsPluginActivationBlocked() {
+                bool result = _pluginActivationBlocked.load();
+                return result;
+            }
+
+            void BlockPluginActivation() {
+                _pluginActivationBlocked = true;
+            }
+
             inline void Security(const bool enabled)
             {
                 _adminLock.Lock();
@@ -2439,6 +2450,7 @@ POP_WARNING()
             Server& _server;
             Core::Sink<SubSystems> _subSystems;
             IAuthenticate* _authenticationHandler;
+            std::atomic_bool _pluginActivationBlocked;
         };
 
         // Connection handler is the listening socket and keeps track of all open
