@@ -327,25 +327,7 @@ POP_WARNING()
         void* result = nullptr;
 
         if ((options.Locator != nullptr) && (options.ClassName != nullptr)) {
-            string path = (!options.SystemRootPath.empty() ? options.SystemRootPath : "") + options.PersistentPath;
-            result = CheckInstance(path, options.Locator, options.ClassName, options.InterfaceId, options.Version);
-
-            if (result == nullptr) {
-                path = (!options.SystemRootPath.empty() ? options.SystemRootPath : "") + options.SystemPath;
-                result = CheckInstance(path, options.Locator, options.ClassName, options.InterfaceId, options.Version);
-
-                if (result == nullptr) {
-                    path = (!options.SystemRootPath.empty() ? options.SystemRootPath : "") + options.DataPath;
-                    result = CheckInstance(path, options.Locator, options.ClassName, options.InterfaceId, options.Version);
-
-                    if (result == nullptr) {
-                        string searchPath(options.AppPath.empty() == false ? Core::Directory::Normalize(options.AppPath) : string());
-
-                        path = (!options.SystemRootPath.empty() ? options.SystemRootPath : "") + searchPath;
-                        result = CheckInstance((path + _T("Plugins/")), options.Locator, options.ClassName, options.InterfaceId, options.Version);
-                    }
-                }
-            }
+            result = CheckInstance(options.SystemPath, options.Locator, options.ClassName, options.InterfaceId, options.Version);
         }
 
         return (result);
