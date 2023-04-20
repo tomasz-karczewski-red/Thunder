@@ -262,7 +262,7 @@ namespace Core {
     };
 
     template <const uint32_t IDENTIFIER, typename PARAMETERS, typename RESPONSE>
-    class IPCMessageType : public IIPC, public IReferenceCounted {
+    class EXTERNAL IPCMessageType : public IIPC, public IReferenceCounted {
     private:
         using CompoundClass = IPCMessageType<IDENTIFIER, PARAMETERS, RESPONSE>;
 

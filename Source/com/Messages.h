@@ -68,7 +68,7 @@ namespace RPC {
             }
         };
 
-        class Input {
+        class EXTERNAL Input {
         public:
             Input(const Input&) = delete;
             Input& operator=(const Input&) = delete;
@@ -137,7 +137,7 @@ namespace RPC {
             Frame _data;
         };
 
-        class Output {
+        class EXTERNAL Output {
         public:
             Output(const Output&) = delete;
             Output& operator=(const Output&) = delete;

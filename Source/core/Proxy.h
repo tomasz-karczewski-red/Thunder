@@ -1393,7 +1393,7 @@ POP_WARNING()
         };
 
         template <typename PROXYELEMENT>
-        class ProxyPoolType {
+        class EXTERNAL ProxyPoolType {
         private:
             using ContainerElement = ProxyContainerType< ProxyPoolType<PROXYELEMENT>, PROXYELEMENT, PROXYELEMENT>;
             using ContainerList = std::list< Core::ProxyType<ContainerElement> >;
